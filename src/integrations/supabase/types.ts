@@ -9,7 +9,129 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      patient_food_orders: {
+        Row: {
+          afiliacion_cui: string
+          almuerzo: boolean | null
+          cena: boolean | null
+          created_at: string
+          desayuno: boolean | null
+          fecha: string
+          id: string
+          justificacion: string
+          no_cama: string
+          nombre_completo_paciente: string
+          nombre_paciente_firma: string | null
+          nombre_solicitante: string | null
+          refaccion_am: boolean | null
+          refaccion_nocturna: boolean | null
+          refaccion_pm: boolean | null
+          servicio: string
+          tipo_dieta: string
+          updated_at: string
+        }
+        Insert: {
+          afiliacion_cui: string
+          almuerzo?: boolean | null
+          cena?: boolean | null
+          created_at?: string
+          desayuno?: boolean | null
+          fecha: string
+          id?: string
+          justificacion: string
+          no_cama: string
+          nombre_completo_paciente: string
+          nombre_paciente_firma?: string | null
+          nombre_solicitante?: string | null
+          refaccion_am?: boolean | null
+          refaccion_nocturna?: boolean | null
+          refaccion_pm?: boolean | null
+          servicio: string
+          tipo_dieta: string
+          updated_at?: string
+        }
+        Update: {
+          afiliacion_cui?: string
+          almuerzo?: boolean | null
+          cena?: boolean | null
+          created_at?: string
+          desayuno?: boolean | null
+          fecha?: string
+          id?: string
+          justificacion?: string
+          no_cama?: string
+          nombre_completo_paciente?: string
+          nombre_paciente_firma?: string | null
+          nombre_solicitante?: string | null
+          refaccion_am?: boolean | null
+          refaccion_nocturna?: boolean | null
+          refaccion_pm?: boolean | null
+          servicio?: string
+          tipo_dieta?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_food_orders: {
+        Row: {
+          almuerzo: boolean | null
+          cargo: string
+          cena: boolean | null
+          created_at: string
+          desayuno: boolean | null
+          fecha: string
+          id: string
+          justificacion: string
+          no_empleado: string
+          nombre_aprobador: string | null
+          nombre_colaborador: string | null
+          nombre_completo_personal: string
+          nombre_solicitante: string | null
+          refaccion_nocturna: boolean | null
+          servicio: string
+          tipo_dieta: string
+          updated_at: string
+        }
+        Insert: {
+          almuerzo?: boolean | null
+          cargo: string
+          cena?: boolean | null
+          created_at?: string
+          desayuno?: boolean | null
+          fecha: string
+          id?: string
+          justificacion: string
+          no_empleado: string
+          nombre_aprobador?: string | null
+          nombre_colaborador?: string | null
+          nombre_completo_personal: string
+          nombre_solicitante?: string | null
+          refaccion_nocturna?: boolean | null
+          servicio: string
+          tipo_dieta: string
+          updated_at?: string
+        }
+        Update: {
+          almuerzo?: boolean | null
+          cargo?: string
+          cena?: boolean | null
+          created_at?: string
+          desayuno?: boolean | null
+          fecha?: string
+          id?: string
+          justificacion?: string
+          no_empleado?: string
+          nombre_aprobador?: string | null
+          nombre_colaborador?: string | null
+          nombre_completo_personal?: string
+          nombre_solicitante?: string | null
+          refaccion_nocturna?: boolean | null
+          servicio?: string
+          tipo_dieta?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

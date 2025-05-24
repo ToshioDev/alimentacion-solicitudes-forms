@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,75 +14,37 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Download, Users, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Download, Users, FileText, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { generatePatientPDF, generateStaffPDF } from "@/utils/pdfGenerator";
-
-interface PatientOrder {
-  id: number;
-  type: 'patient';
-  fecha: string;
-  nombreCompletoPaciente: string;
-  afiliacionCUI: string;
-  noCama: string;
-  servicio: string;
-  tipoDieta: string;
-  desayuno: boolean;
-  almuerzo: boolean;
-  cena: boolean;
-  refaccionAM: boolean;
-  refaccionPM: boolean;
-  refaccionNocturna: boolean;
-  justificacion: string;
-  nombreSolicitante: string;
-  nombrePacienteFirma: string;
-  fechaCreacion: string;
-}
-
-interface StaffOrder {
-  id: number;
-  type: 'staff';
-  fecha: string;
-  nombreCompletoPersonal: string;
-  noEmpleado: string;
-  servicio: string;
-  cargo: string;
-  tipoDieta: string;
-  desayuno: boolean;
-  almuerzo: boolean;
-  cena: boolean;
-  refaccionNocturna: boolean;
-  justificacion: string;
-  nombreSolicitante: string;
-  nombreColaborador: string;
-  nombreAprobador: string;
-  fechaCreacion: string;
-}
+import { usePatientOrders, PatientOrder } from "@/hooks/usePatientOrders";
+import { useStaffOrders, StaffOrder } from "@/hooks/useStaffOrders";
 
 const DataManagement = () => {
   const navigate = useNavigate();
-  const [patientOrders, setPatientOrders] = useState<PatientOrder[]>([]);
-  const [staffOrders, setStaffOrders] = useState<StaffOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    // Cargar datos desde localStorage
-    const patientData = JSON.parse(localStorage.getItem('patientOrders') || '[]');
-    const staffData = JSON.parse(localStorage.getItem('staffOrders') || '[]');
-    setPatientOrders(patientData);
-    setStaffOrders(staffData);
-  }, []);
+  const { 
+    orders: patientOrders, 
+    isLoading: patientLoading, 
+    deleteOrder: deletePatientOrder 
+  } = usePatientOrders();
+
+  const { 
+    orders: staffOrders, 
+    isLoading: staffLoading, 
+    deleteOrder: deleteStaffOrder 
+  } = useStaffOrders();
 
   const filteredPatientOrders = patientOrders.filter(order =>
-    order.nombreCompletoPaciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.afiliacionCUI.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.nombre_completo_paciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.afiliacion_cui.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.servicio.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredStaffOrders = staffOrders.filter(order =>
-    order.nombreCompletoPersonal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.noEmpleado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.nombre_completo_personal.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.no_empleado.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.servicio.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -91,65 +53,48 @@ const DataManagement = () => {
     if (order.desayuno) meals.push("Desayuno");
     if (order.almuerzo) meals.push("Almuerzo");
     if (order.cena) meals.push("Cena");
-    if ('refaccionAM' in order && order.refaccionAM) meals.push("Ref. AM");
-    if ('refaccionPM' in order && order.refaccionPM) meals.push("Ref. PM");
-    if (order.refaccionNocturna) meals.push("Ref. Nocturna");
+    if ('refaccion_am' in order && order.refaccion_am) meals.push("Ref. AM");
+    if ('refaccion_pm' in order && order.refaccion_pm) meals.push("Ref. PM");
+    if (order.refaccion_nocturna) meals.push("Ref. Nocturna");
     return meals;
   };
 
-  const handleGeneratePDF = (order: PatientOrder | StaffOrder) => {
-    if (order.type === 'patient') {
-      generatePatientPDF({
-        fecha: new Date(order.fecha),
-        nombreCompletoPaciente: order.nombreCompletoPaciente,
-        afiliacionCUI: order.afiliacionCUI,
-        noCama: order.noCama,
-        servicio: order.servicio,
-        tipoDieta: order.tipoDieta,
-        desayuno: order.desayuno,
-        almuerzo: order.almuerzo,
-        cena: order.cena,
-        refaccionAM: (order as PatientOrder).refaccionAM,
-        refaccionPM: (order as PatientOrder).refaccionPM,
-        refaccionNocturna: order.refaccionNocturna,
-        justificacion: order.justificacion,
-        nombreSolicitante: order.nombreSolicitante,
-        nombrePacienteFirma: (order as PatientOrder).nombrePacienteFirma,
-      });
-    } else {
-      generateStaffPDF({
-        fecha: new Date(order.fecha),
-        nombreCompletoPersonal: order.nombreCompletoPersonal,
-        noEmpleado: order.noEmpleado,
-        servicio: order.servicio,
-        cargo: order.cargo,
-        tipoDieta: order.tipoDieta,
-        desayuno: order.desayuno,
-        almuerzo: order.almuerzo,
-        cena: order.cena,
-        refaccionNocturna: order.refaccionNocturna,
-        justificacion: order.justificacion,
-        nombreSolicitante: order.nombreSolicitante,
-        nombreColaborador: order.nombreColaborador,
-        nombreAprobador: order.nombreAprobador,
-      });
-    }
+  const handleGeneratePatientPDF = (order: PatientOrder) => {
+    generatePatientPDF({
+      fecha: new Date(order.fecha),
+      nombreCompletoPaciente: order.nombre_completo_paciente,
+      afiliacionCUI: order.afiliacion_cui,
+      noCama: order.no_cama,
+      servicio: order.servicio,
+      tipoDieta: order.tipo_dieta,
+      desayuno: order.desayuno,
+      almuerzo: order.almuerzo,
+      cena: order.cena,
+      refaccionAM: order.refaccion_am,
+      refaccionPM: order.refaccion_pm,
+      refaccionNocturna: order.refaccion_nocturna,
+      justificacion: order.justificacion,
+      nombreSolicitante: order.nombre_solicitante,
+      nombrePacienteFirma: order.nombre_paciente_firma,
+    });
   };
 
-  const handleDeleteOrder = (id: number, type: 'patient' | 'staff') => {
-    if (type === 'patient') {
-      const updatedOrders = patientOrders.filter(order => order.id !== id);
-      setPatientOrders(updatedOrders);
-      localStorage.setItem('patientOrders', JSON.stringify(updatedOrders));
-    } else {
-      const updatedOrders = staffOrders.filter(order => order.id !== id);
-      setStaffOrders(updatedOrders);
-      localStorage.setItem('staffOrders', JSON.stringify(updatedOrders));
-    }
-    
-    toast({
-      title: "Éxito",
-      description: "Orden eliminada correctamente"
+  const handleGenerateStaffPDF = (order: StaffOrder) => {
+    generateStaffPDF({
+      fecha: new Date(order.fecha),
+      nombreCompletoPersonal: order.nombre_completo_personal,
+      noEmpleado: order.no_empleado,
+      servicio: order.servicio,
+      cargo: order.cargo,
+      tipoDieta: order.tipo_dieta,
+      desayuno: order.desayuno,
+      almuerzo: order.almuerzo,
+      cena: order.cena,
+      refaccionNocturna: order.refaccion_nocturna,
+      justificacion: order.justificacion,
+      nombreSolicitante: order.nombre_solicitante,
+      nombreColaborador: order.nombre_colaborador,
+      nombreAprobador: order.nombre_aprobador,
     });
   };
 
@@ -213,7 +158,9 @@ const DataManagement = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{patientOrders.length}</div>
+              <div className="text-2xl font-bold">
+                {patientLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : patientOrders.length}
+              </div>
               <p className="text-xs text-muted-foreground">Total registradas</p>
             </CardContent>
           </Card>
@@ -223,7 +170,9 @@ const DataManagement = () => {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{staffOrders.length}</div>
+              <div className="text-2xl font-bold">
+                {staffLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : staffOrders.length}
+              </div>
               <p className="text-xs text-muted-foreground">Total registradas</p>
             </CardContent>
           </Card>
@@ -245,68 +194,74 @@ const DataManagement = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Paciente</TableHead>
-                        <TableHead>Afiliación/CUI</TableHead>
-                        <TableHead>Cama</TableHead>
-                        <TableHead>Servicio</TableHead>
-                        <TableHead>Tipo Dieta</TableHead>
-                        <TableHead>Tiempos</TableHead>
-                        <TableHead>Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPatientOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">
-                            {order.fecha ? format(new Date(order.fecha), "dd/MM/yyyy") : "N/A"}
-                          </TableCell>
-                          <TableCell>{order.nombreCompletoPaciente}</TableCell>
-                          <TableCell>{order.afiliacionCUI}</TableCell>
-                          <TableCell>{order.noCama || "N/A"}</TableCell>
-                          <TableCell>{order.servicio || "N/A"}</TableCell>
-                          <TableCell>{order.tipoDieta || "N/A"}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {getMealBadges(order).map((meal, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {meal}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleGeneratePDF(order)}
-                              >
-                                <Download className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteOrder(order.id, 'patient')}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                {patientLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Paciente</TableHead>
+                          <TableHead>Afiliación/CUI</TableHead>
+                          <TableHead>Cama</TableHead>
+                          <TableHead>Servicio</TableHead>
+                          <TableHead>Tipo Dieta</TableHead>
+                          <TableHead>Tiempos</TableHead>
+                          <TableHead>Acciones</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {filteredPatientOrders.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No se encontraron órdenes de pacientes
-                    </div>
-                  )}
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPatientOrders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">
+                              {order.fecha ? format(new Date(order.fecha), "dd/MM/yyyy") : "N/A"}
+                            </TableCell>
+                            <TableCell>{order.nombre_completo_paciente}</TableCell>
+                            <TableCell>{order.afiliacion_cui}</TableCell>
+                            <TableCell>{order.no_cama || "N/A"}</TableCell>
+                            <TableCell>{order.servicio || "N/A"}</TableCell>
+                            <TableCell>{order.tipo_dieta || "N/A"}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {getMealBadges(order).map((meal, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {meal}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleGeneratePatientPDF(order)}
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => order.id && deletePatientOrder(order.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {filteredPatientOrders.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No se encontraron órdenes de pacientes
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -320,68 +275,74 @@ const DataManagement = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Personal</TableHead>
-                        <TableHead>No. Empleado</TableHead>
-                        <TableHead>Cargo</TableHead>
-                        <TableHead>Servicio</TableHead>
-                        <TableHead>Tipo Dieta</TableHead>
-                        <TableHead>Tiempos</TableHead>
-                        <TableHead>Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredStaffOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell className="font-medium">
-                            {order.fecha ? format(new Date(order.fecha), "dd/MM/yyyy") : "N/A"}
-                          </TableCell>
-                          <TableCell>{order.nombreCompletoPersonal}</TableCell>
-                          <TableCell>{order.noEmpleado}</TableCell>
-                          <TableCell>{order.cargo || "N/A"}</TableCell>
-                          <TableCell>{order.servicio || "N/A"}</TableCell>
-                          <TableCell>{order.tipoDieta || "N/A"}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {getMealBadges(order).map((meal, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  {meal}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleGeneratePDF(order)}
-                              >
-                                <Download className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteOrder(order.id, 'staff')}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                {staffLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Personal</TableHead>
+                          <TableHead>No. Empleado</TableHead>
+                          <TableHead>Cargo</TableHead>
+                          <TableHead>Servicio</TableHead>
+                          <TableHead>Tipo Dieta</TableHead>
+                          <TableHead>Tiempos</TableHead>
+                          <TableHead>Acciones</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {filteredStaffOrders.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No se encontraron órdenes de personal
-                    </div>
-                  )}
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredStaffOrders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">
+                              {order.fecha ? format(new Date(order.fecha), "dd/MM/yyyy") : "N/A"}
+                            </TableCell>
+                            <TableCell>{order.nombre_completo_personal}</TableCell>
+                            <TableCell>{order.no_empleado}</TableCell>
+                            <TableCell>{order.cargo || "N/A"}</TableCell>
+                            <TableCell>{order.servicio || "N/A"}</TableCell>
+                            <TableCell>{order.tipo_dieta || "N/A"}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {getMealBadges(order).map((meal, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {meal}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleGenerateStaffPDF(order)}
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => order.id && deleteStaffOrder(order.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {filteredStaffOrders.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No se encontraron órdenes de personal
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
