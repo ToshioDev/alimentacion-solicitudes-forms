@@ -34,16 +34,10 @@ const App: React.FC = () => {
                     <Auth />
                   </AuthGuard>
                 } />
-                <Route path="/formulario-paciente" element={
-                  <AuthGuard requireAuth={true}>
-                    <PatientForm />
-                  </AuthGuard>
-                } />
-                <Route path="/formulario-personal" element={
-                  <AuthGuard requireAuth={true}>
-                    <StaffForm />
-                  </AuthGuard>
-                } />
+                {/* Formularios públicos - sin autenticación requerida */}
+                <Route path="/formulario-paciente" element={<PatientForm />} />
+                <Route path="/formulario-personal" element={<StaffForm />} />
+                {/* Solo la gestión de datos requiere autenticación */}
                 <Route path="/gestion-datos" element={
                   <AuthGuard requireAuth={true}>
                     <DataManagement />
