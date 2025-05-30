@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import { CalendarIcon, ArrowLeft, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateStaffPDF } from "@/utils/pdfGenerator";
+import FormRecordsSheet from "@/components/FormRecordsSheet";
 
 interface StaffFormData {
   fecha: Date | undefined;
@@ -59,7 +59,6 @@ const StaffForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validaciones básicas
     if (!formData.fecha) {
       toast({ title: "Error", description: "La fecha es obligatoria", variant: "destructive" });
       return;
@@ -80,7 +79,6 @@ const StaffForm = () => {
       return;
     }
 
-    // Al menos un tiempo de comida debe estar seleccionado
     const tiemposSeleccionados = [
       formData.desayuno,
       formData.almuerzo,
@@ -93,23 +91,22 @@ const StaffForm = () => {
       return;
     }
 
-    // Guardar en localStorage (simulando base de datos)
-    const existingData = JSON.parse(localStorage.getItem('staffOrders') || '[]');
+    const existingData = JSON.parse(localStorage.getItem('staffForms') || '[]');
     const newOrder = {
       id: Date.now(),
       type: 'staff',
+      status: 'completed',
       ...formData,
       fechaCreacion: new Date().toISOString(),
     };
     existingData.push(newOrder);
-    localStorage.setItem('staffOrders', JSON.stringify(existingData));
+    localStorage.setItem('staffForms', JSON.stringify(existingData));
 
     toast({ 
       title: "Éxito", 
       description: "Orden de alimentación para personal guardada correctamente" 
     });
 
-    // Limpiar formulario
     setFormData({
       fecha: undefined,
       nombreCompletoPersonal: "",
@@ -136,6 +133,15 @@ const StaffForm = () => {
     generateStaffPDF(formData);
   };
 
+  const handleEditRecord = (record: any) => {
+    setFormData(record);
+    toast({ title: "Formulario cargado", description: "Se ha cargado el formulario para editar" });
+  };
+
+  const handleGenerateRecordPDF = (record: any) => {
+    generateStaffPDF(record);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-100">
       {/* Header */}
@@ -157,9 +163,16 @@ const StaffForm = () => {
                 </div>
               </div>
             </div>
-            <Button onClick={handleGeneratePDF} variant="outline">
-              Generar PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleGeneratePDF} variant="outline">
+                Generar PDF
+              </Button>
+              <FormRecordsSheet 
+                formType="staff" 
+                onEditRecord={handleEditRecord}
+                onGeneratePDF={handleGenerateRecordPDF}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -175,7 +188,6 @@ const StaffForm = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* Información General */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Información General</h3>
                 <div className="grid gap-4">
@@ -208,7 +220,6 @@ const StaffForm = () => {
                 </div>
               </div>
 
-              {/* Información del Personal */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Información del Personal</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente solicito a usted se brinde alimentación a:</p>
@@ -289,7 +300,6 @@ const StaffForm = () => {
                 </div>
               </div>
 
-              {/* Tiempos de Comida */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Tiempos de Comida Solicitados</h3>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -328,7 +338,6 @@ const StaffForm = () => {
                 </div>
               </div>
 
-              {/* Justificación */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Justificación</h3>
                 <div>
@@ -343,7 +352,6 @@ const StaffForm = () => {
                 </div>
               </div>
 
-              {/* Firmas */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Firmas</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente,</p>
@@ -381,13 +389,9 @@ const StaffForm = () => {
                 </div>
               </div>
 
-              {/* Botones */}
               <div className="flex gap-4 pt-6">
                 <Button type="submit" className="flex-1">
                   Guardar Orden
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate('/gestion-datos')}>
-                  Ver Registros
                 </Button>
               </div>
             </CardContent>

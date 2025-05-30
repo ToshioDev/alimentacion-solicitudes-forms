@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import { CalendarIcon, ArrowLeft, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generatePatientPDF } from "@/utils/pdfGenerator";
+import FormRecordsSheet from "@/components/FormRecordsSheet";
 
 interface PatientFormData {
   fecha: Date | undefined;
@@ -61,7 +61,6 @@ const PatientForm = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validaciones básicas
     if (!formData.fecha) {
       toast({ title: "Error", description: "La fecha es obligatoria", variant: "destructive" });
       return;
@@ -82,7 +81,6 @@ const PatientForm = () => {
       return;
     }
 
-    // Al menos un tiempo de comida debe estar seleccionado
     const tiemposSeleccionados = [
       formData.desayuno,
       formData.almuerzo,
@@ -97,23 +95,23 @@ const PatientForm = () => {
       return;
     }
 
-    // Guardar en localStorage (simulando base de datos)
-    const existingData = JSON.parse(localStorage.getItem('patientOrders') || '[]');
+    // Guardar en localStorage con status completed
+    const existingData = JSON.parse(localStorage.getItem('patientForms') || '[]');
     const newOrder = {
       id: Date.now(),
       type: 'patient',
+      status: 'completed',
       ...formData,
       fechaCreacion: new Date().toISOString(),
     };
     existingData.push(newOrder);
-    localStorage.setItem('patientOrders', JSON.stringify(existingData));
+    localStorage.setItem('patientForms', JSON.stringify(existingData));
 
     toast({ 
       title: "Éxito", 
       description: "Orden de alimentación para paciente guardada correctamente" 
     });
 
-    // Limpiar formulario
     setFormData({
       fecha: undefined,
       nombreCompletoPaciente: "",
@@ -141,6 +139,15 @@ const PatientForm = () => {
     generatePatientPDF(formData);
   };
 
+  const handleEditRecord = (record: any) => {
+    setFormData(record);
+    toast({ title: "Formulario cargado", description: "Se ha cargado el formulario para editar" });
+  };
+
+  const handleGenerateRecordPDF = (record: any) => {
+    generatePatientPDF(record);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       {/* Header */}
@@ -162,9 +169,16 @@ const PatientForm = () => {
                 </div>
               </div>
             </div>
-            <Button onClick={handleGeneratePDF} variant="outline">
-              Generar PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleGeneratePDF} variant="outline">
+                Generar PDF
+              </Button>
+              <FormRecordsSheet 
+                formType="patient" 
+                onEditRecord={handleEditRecord}
+                onGeneratePDF={handleGenerateRecordPDF}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -180,7 +194,6 @@ const PatientForm = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              {/* Información General */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Información General</h3>
                 <div className="grid gap-4">
@@ -213,7 +226,6 @@ const PatientForm = () => {
                 </div>
               </div>
 
-              {/* Información del Paciente */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Información del Paciente</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente solicito a usted se brinde alimentación a:</p>
@@ -289,7 +301,6 @@ const PatientForm = () => {
                 </div>
               </div>
 
-              {/* Tiempos de Comida */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Tiempos de Comida Solicitados</h3>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -344,7 +355,6 @@ const PatientForm = () => {
                 </div>
               </div>
 
-              {/* Justificación */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Justificación</h3>
                 <div>
@@ -359,7 +369,6 @@ const PatientForm = () => {
                 </div>
               </div>
 
-              {/* Firmas */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Firmas</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente,</p>
@@ -387,13 +396,9 @@ const PatientForm = () => {
                 </div>
               </div>
 
-              {/* Botones */}
               <div className="flex gap-4 pt-6">
                 <Button type="submit" className="flex-1">
                   Guardar Orden
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate('/gestion-datos')}>
-                  Ver Registros
                 </Button>
               </div>
             </CardContent>
