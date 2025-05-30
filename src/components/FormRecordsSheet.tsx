@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Eye, Edit, Download } from 'lucide-react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface FormRecord {
   id: number;
@@ -50,9 +50,9 @@ const FormRecordsSheet = ({ formType, onEditRecord, onGeneratePDF }: FormRecords
 
   const getRecordSubtitle = (record: FormRecord) => {
     if (record.fecha) {
-      return format(new Date(record.fecha), 'dd/MM/yyyy', { locale: es });
+      return format(new Date(record.fecha), 'dd/MM/yyyy');
     }
-    return format(new Date(record.fechaCreacion), 'dd/MM/yyyy HH:mm', { locale: es });
+    return format(new Date(record.fechaCreacion), 'dd/MM/yyyy HH:mm');
   };
 
   const completedRecords = records.filter(r => r.status === 'completed');
