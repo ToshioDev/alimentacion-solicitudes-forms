@@ -45,11 +45,16 @@ const Navbar = () => {
       <div className="bg-white shadow-sm border-b px-4 py-3">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-gray-900">IGSS</h1>
+            <img 
+              src="/lovable-uploads/31eb0619-cbda-4f2f-a770-0972a9741cda.png" 
+              alt="IGSS Logo" 
+              className="w-12 h-12 object-contain"
+            />
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">IGSS</h1>
+              <p className="text-sm text-gray-600">Sistema de Órdenes de Alimentación</p>
+            </div>
           </div>
-          <Button onClick={() => navigate('/auth')} variant="outline">
-            Iniciar Sesión
-          </Button>
         </div>
       </div>
     );
@@ -59,7 +64,15 @@ const Navbar = () => {
     <div className="bg-white shadow-sm border-b px-4 py-3">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold text-gray-900">IGSS</h1>
+          <img 
+            src="/lovable-uploads/31eb0619-cbda-4f2f-a770-0972a9741cda.png" 
+            alt="IGSS Logo" 
+            className="w-12 h-12 object-contain"
+          />
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">IGSS</h1>
+            <p className="text-sm text-gray-600">Sistema de Órdenes de Alimentación</p>
+          </div>
           {userRole && (
             <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
               <Shield className="w-4 h-4 text-blue-600" />

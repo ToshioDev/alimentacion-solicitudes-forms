@@ -16,10 +16,10 @@ const AuthGuard = ({ children, requireAuth = false }: AuthGuardProps) => {
   useEffect(() => {
     if (!loading) {
       if (requireAuth && !user) {
-        // Redirect to auth page if authentication is required but user is not logged in
-        navigate('/auth', { state: { from: location.pathname } });
-      } else if (!requireAuth && user && location.pathname === '/auth') {
-        // Redirect authenticated users away from auth page
+        // Redirect to admin page if authentication is required but user is not logged in
+        navigate('/admin', { state: { from: location.pathname } });
+      } else if (!requireAuth && user && location.pathname === '/admin') {
+        // Redirect authenticated users away from admin page
         navigate('/');
       }
     }

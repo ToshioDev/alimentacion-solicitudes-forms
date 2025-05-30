@@ -29,7 +29,8 @@ const App: React.FC = () => {
               <Navbar />
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/auth" element={
+                {/* Ruta de administración privada */}
+                <Route path="/admin" element={
                   <AuthGuard requireAuth={false}>
                     <Auth />
                   </AuthGuard>
