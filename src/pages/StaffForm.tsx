@@ -20,6 +20,7 @@ interface StaffFormData {
   fecha: Date | undefined;
   nombreCompletoPersonal: string;
   noEmpleado: string;
+  ibm: string;
   servicio: string;
   cargo: string;
   tipoDieta: string;
@@ -39,6 +40,7 @@ const StaffForm = () => {
     fecha: undefined,
     nombreCompletoPersonal: "",
     noEmpleado: "",
+    ibm: "",
     servicio: "",
     cargo: "",
     tipoDieta: "",
@@ -111,6 +113,7 @@ const StaffForm = () => {
       fecha: undefined,
       nombreCompletoPersonal: "",
       noEmpleado: "",
+      ibm: "",
       servicio: "",
       cargo: "",
       tipoDieta: "",
@@ -159,7 +162,7 @@ const StaffForm = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Orden de Alimentación - Personal</h1>
-                  <p className="text-sm text-gray-600">Formulario SPS-110 A</p>
+                  <p className="text-sm text-gray-600">Formulario para personal del hospital</p>
                 </div>
               </div>
             </div>
@@ -233,7 +236,7 @@ const StaffForm = () => {
                       placeholder="Ingrese el nombre completo del personal"
                     />
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="noEmpleado">No. empleado *</Label>
                       <Input
@@ -241,6 +244,15 @@ const StaffForm = () => {
                         value={formData.noEmpleado}
                         onChange={(e) => handleInputChange('noEmpleado', e.target.value)}
                         placeholder="Número de empleado"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ibm">IBM</Label>
+                      <Input
+                        id="ibm"
+                        value={formData.ibm}
+                        onChange={(e) => handleInputChange('ibm', e.target.value)}
+                        placeholder="Identificador IBM"
                       />
                     </div>
                     <div>
@@ -261,22 +273,11 @@ const StaffForm = () => {
                           <SelectValue placeholder="Seleccionar servicio" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="administracion">Administración</SelectItem>
-                          <SelectItem value="medicina-interna">Medicina Interna</SelectItem>
-                          <SelectItem value="cirugia">Cirugía</SelectItem>
-                          <SelectItem value="pediatria">Pediatría</SelectItem>
-                          <SelectItem value="ginecologia">Ginecología</SelectItem>
-                          <SelectItem value="ortopedia">Ortopedia</SelectItem>
-                          <SelectItem value="cardiologia">Cardiología</SelectItem>
-                          <SelectItem value="neurologia">Neurología</SelectItem>
-                          <SelectItem value="uci">UCI</SelectItem>
                           <SelectItem value="emergencia">Emergencia</SelectItem>
-                          <SelectItem value="laboratorio">Laboratorio</SelectItem>
-                          <SelectItem value="radiologia">Radiología</SelectItem>
-                          <SelectItem value="farmacia">Farmacia</SelectItem>
-                          <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
-                          <SelectItem value="seguridad">Seguridad</SelectItem>
-                          <SelectItem value="limpieza">Limpieza</SelectItem>
+                          <SelectItem value="hospitalizacion">Hospitalización</SelectItem>
+                          <SelectItem value="servicios-varios-piloto">Servicios Varios Piloto</SelectItem>
+                          <SelectItem value="servicios-varios-agentes">Servicios Varios Agentes</SelectItem>
+                          <SelectItem value="servicios-varios-camareros">Servicios Varios Camareros</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -300,6 +301,7 @@ const StaffForm = () => {
                 </div>
               </div>
 
+              
               <div>
                 <h3 className="text-lg font-semibold mb-4">Tiempos de Comida Solicitados</h3>
                 <div className="grid md:grid-cols-2 gap-4">

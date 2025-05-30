@@ -23,6 +23,7 @@ interface StaffFormData {
   fecha: Date | undefined;
   nombreCompletoPersonal: string;
   noEmpleado: string;
+  ibm?: string;
   servicio: string;
   cargo: string;
   tipoDieta: string;
@@ -68,10 +69,6 @@ const createPDFWindow = (content: string, title: string) => {
               font-weight: bold;
               font-size: 14px;
               margin: 10px 0;
-            }
-            .form-code {
-              font-size: 10px;
-              margin-bottom: 10px;
             }
             .section {
               margin: 20px 0;
@@ -181,7 +178,6 @@ export const generatePatientPDF = (data: PatientFormData) => {
       <div class="institution">INSTITUTO GUATEMALTECO DE SEGURIDAD SOCIAL</div>
       <div class="institution">IGSS</div>
       <div class="form-title">ORDEN TIEMPOS SUELTOS DE ALIMENTACIÓN PARA PACIENTES</div>
-      <div class="form-code">SPS-110</div>
     </div>
 
     <div class="section">
@@ -285,7 +281,6 @@ export const generateStaffPDF = (data: StaffFormData) => {
       <div class="institution">INSTITUTO GUATEMALTECO DE SEGURIDAD SOCIAL</div>
       <div class="institution">IGSS</div>
       <div class="form-title">ORDEN TIEMPOS SUELTOS DE ALIMENTACIÓN PARA PERSONAL</div>
-      <div class="form-code">SPS-110 A</div>
     </div>
 
     <div class="section">
@@ -309,6 +304,13 @@ export const generateStaffPDF = (data: StaffFormData) => {
         <span class="field-label">No. empleado:</span>
         <span class="field-value">${data.noEmpleado || ''}</span>
       </div>
+      
+      ${data.ibm ? `
+      <div class="field">
+        <span class="field-label">IBM:</span>
+        <span class="field-value">${data.ibm}</span>
+      </div>
+      ` : ''}
       
       <div class="field">
         <span class="field-label">Cargo:</span>
