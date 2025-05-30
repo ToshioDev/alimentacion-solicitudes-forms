@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 
 interface PatientFormData {
@@ -34,7 +33,6 @@ interface StaffFormData {
   justificacion: string;
   nombreSolicitante: string;
   nombreColaborador: string;
-  nombreAprobador: string;
 }
 
 const createPDFWindow = (content: string, title: string) => {
@@ -59,6 +57,14 @@ const createPDFWindow = (content: string, title: string) => {
               margin-bottom: 30px;
               border-bottom: 2px solid #000;
               padding-bottom: 15px;
+              position: relative;
+            }
+            .logo {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 80px;
+              height: 80px;
             }
             .institution {
               font-weight: bold;
@@ -175,6 +181,7 @@ export const generatePatientPDF = (data: PatientFormData) => {
   
   const content = `
     <div class="header">
+      <img src="/lovable-uploads/31eb0619-cbda-4f2f-a770-0972a9741cda.png" alt="Logo IGSS" class="logo">
       <div class="institution">INSTITUTO GUATEMALTECO DE SEGURIDAD SOCIAL</div>
       <div class="institution">IGSS</div>
       <div class="form-title">ORDEN TIEMPOS SUELTOS DE ALIMENTACIÓN PARA PACIENTES</div>
@@ -278,9 +285,10 @@ export const generateStaffPDF = (data: StaffFormData) => {
   
   const content = `
     <div class="header">
+      <img src="/lovable-uploads/31eb0619-cbda-4f2f-a770-0972a9741cda.png" alt="Logo IGSS" class="logo">
       <div class="institution">INSTITUTO GUATEMALTECO DE SEGURIDAD SOCIAL</div>
       <div class="institution">IGSS</div>
-      <div class="form-title">ORDEN TIEMPOS SUELTOS DE ALIMENTACIÓN PARA PERSONAL</div>
+      <div class="form-title">SOLICITUD DE TIEMPOS DE ALIMENTACIÓN PARA PERSONAL</div>
     </div>
 
     <div class="section">
@@ -368,14 +376,9 @@ export const generateStaffPDF = (data: StaffFormData) => {
           <div style="margin: 20px 0; min-height: 30px;">${data.nombreColaborador || ''}</div>
           <div class="signature-desc">Colaborador</div>
         </div>
-        <div class="signature-box">
-          <div class="signature-label">Firma y sello</div>
-          <div style="margin: 20px 0; min-height: 30px;">${data.nombreAprobador || ''}</div>
-          <div class="signature-desc">Vo. Bo. Administrador o persona responsable</div>
-        </div>
       </div>
     </div>
   `;
 
-  createPDFWindow(content, `Orden_Personal_${data.nombreCompletoPersonal || 'Sin_Nombre'}`);
+  createPDFWindow(content, `Solicitud_Personal_${data.nombreCompletoPersonal || 'Sin_Nombre'}`);
 };

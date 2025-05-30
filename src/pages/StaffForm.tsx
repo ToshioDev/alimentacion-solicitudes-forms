@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { generateStaffPDF } from "@/utils/pdfGenerator";
 import FormRecordsSheet from "@/components/FormRecordsSheet";
+import { useStaffOrders } from "@/hooks/useStaffOrders";
 
 interface StaffFormData {
   fecha: Date | undefined;
@@ -31,11 +32,11 @@ interface StaffFormData {
   justificacion: string;
   nombreSolicitante: string;
   nombreColaborador: string;
-  nombreAprobador: string;
 }
 
 const StaffForm = () => {
   const navigate = useNavigate();
+  const { createOrder, orders, isLoading } = useStaffOrders();
   const [formData, setFormData] = useState<StaffFormData>({
     fecha: undefined,
     nombreCompletoPersonal: "",
@@ -51,14 +52,13 @@ const StaffForm = () => {
     justificacion: "",
     nombreSolicitante: "",
     nombreColaborador: "",
-    nombreAprobador: "",
   });
 
   const handleInputChange = (field: keyof StaffFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.fecha) {
@@ -93,39 +93,45 @@ const StaffForm = () => {
       return;
     }
 
-    const existingData = JSON.parse(localStorage.getItem('staffForms') || '[]');
-    const newOrder = {
-      id: Date.now(),
-      type: 'staff',
-      status: 'completed',
-      ...formData,
-      fechaCreacion: new Date().toISOString(),
+    // Save to Supabase
+    const orderData = {
+      fecha: format(formData.fecha, "yyyy-MM-dd"),
+      nombre_completo_personal: formData.nombreCompletoPersonal,
+      no_empleado: formData.noEmpleado,
+      servicio: formData.servicio,
+      cargo: formData.cargo,
+      tipo_dieta: formData.tipoDieta,
+      desayuno: formData.desayuno,
+      almuerzo: formData.almuerzo,
+      cena: formData.cena,
+      refaccion_nocturna: formData.refaccionNocturna,
+      justificacion: formData.justificacion,
+      nombre_solicitante: formData.nombreSolicitante,
+      nombre_colaborador: formData.nombreColaborador,
+      nombre_aprobador: "", // Remove this field as requested
     };
-    existingData.push(newOrder);
-    localStorage.setItem('staffForms', JSON.stringify(existingData));
 
-    toast({ 
-      title: "Éxito", 
-      description: "Orden de alimentación para personal guardada correctamente" 
-    });
-
-    setFormData({
-      fecha: undefined,
-      nombreCompletoPersonal: "",
-      noEmpleado: "",
-      ibm: "",
-      servicio: "",
-      cargo: "",
-      tipoDieta: "",
-      desayuno: false,
-      almuerzo: false,
-      cena: false,
-      refaccionNocturna: false,
-      justificacion: "",
-      nombreSolicitante: "",
-      nombreColaborador: "",
-      nombreAprobador: "",
-    });
+    const result = await createOrder(orderData);
+    
+    if (result) {
+      // Reset form on success
+      setFormData({
+        fecha: undefined,
+        nombreCompletoPersonal: "",
+        noEmpleado: "",
+        ibm: "",
+        servicio: "",
+        cargo: "",
+        tipoDieta: "",
+        desayuno: false,
+        almuerzo: false,
+        cena: false,
+        refaccionNocturna: false,
+        justificacion: "",
+        nombreSolicitante: "",
+        nombreColaborador: "",
+      });
+    }
   };
 
   const handleGeneratePDF = () => {
@@ -137,12 +143,43 @@ const StaffForm = () => {
   };
 
   const handleEditRecord = (record: any) => {
-    setFormData(record);
+    setFormData({
+      fecha: record.fecha ? new Date(record.fecha) : undefined,
+      nombreCompletoPersonal: record.nombre_completo_personal || record.nombreCompletoPersonal || "",
+      noEmpleado: record.no_empleado || record.noEmpleado || "",
+      ibm: record.ibm || "",
+      servicio: record.servicio || "",
+      cargo: record.cargo || "",
+      tipoDieta: record.tipo_dieta || record.tipoDieta || "",
+      desayuno: record.desayuno || false,
+      almuerzo: record.almuerzo || false,
+      cena: record.cena || false,
+      refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
+      justificacion: record.justificacion || "",
+      nombreSolicitante: record.nombre_solicitante || record.nombreSolicitante || "",
+      nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
+    });
     toast({ title: "Formulario cargado", description: "Se ha cargado el formulario para editar" });
   };
 
   const handleGenerateRecordPDF = (record: any) => {
-    generateStaffPDF(record);
+    const pdfData = {
+      fecha: record.fecha ? new Date(record.fecha) : undefined,
+      nombreCompletoPersonal: record.nombre_completo_personal || record.nombreCompletoPersonal || "",
+      noEmpleado: record.no_empleado || record.noEmpleado || "",
+      ibm: record.ibm || "",
+      servicio: record.servicio || "",
+      cargo: record.cargo || "",
+      tipoDieta: record.tipo_dieta || record.tipoDieta || "",
+      desayuno: record.desayuno || false,
+      almuerzo: record.almuerzo || false,
+      cena: record.cena || false,
+      refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
+      justificacion: record.justificacion || "",
+      nombreSolicitante: record.nombre_solicitante || record.nombreSolicitante || "",
+      nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
+    };
+    generateStaffPDF(pdfData);
   };
 
   return (
@@ -161,7 +198,7 @@ const StaffForm = () => {
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Orden de Alimentación - Personal</h1>
+                  <h1 className="text-xl font-bold text-gray-900">Solicitud de tiempos de alimentación para personal</h1>
                   <p className="text-sm text-gray-600">Formulario para personal del hospital</p>
                 </div>
               </div>
@@ -185,12 +222,13 @@ const StaffForm = () => {
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <CardTitle>ORDEN TIEMPOS SUELTOS DE ALIMENTACIÓN PARA PERSONAL</CardTitle>
+              <CardTitle>SOLICITUD DE TIEMPOS DE ALIMENTACIÓN PARA PERSONAL</CardTitle>
               <CardDescription>
-                Complete todos los campos requeridos para generar la orden de alimentación
+                Complete todos los campos requeridos para generar la solicitud de alimentación
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
+              
               <div>
                 <h3 className="text-lg font-semibold mb-4">Información General</h3>
                 <div className="grid gap-4">
@@ -273,11 +311,11 @@ const StaffForm = () => {
                           <SelectValue placeholder="Seleccionar servicio" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="emergencia">Emergencia</SelectItem>
-                          <SelectItem value="hospitalizacion">Hospitalización</SelectItem>
-                          <SelectItem value="servicios-varios-piloto">Servicios Varios Piloto</SelectItem>
-                          <SelectItem value="servicios-varios-agentes">Servicios Varios Agentes</SelectItem>
-                          <SelectItem value="servicios-varios-camareros">Servicios Varios Camareros</SelectItem>
+                          <SelectItem value="Emergencia">Emergencia</SelectItem>
+                          <SelectItem value="Hospitalización">Hospitalización</SelectItem>
+                          <SelectItem value="Servicios Varios Piloto">Servicios Varios Piloto</SelectItem>
+                          <SelectItem value="Servicios Varios Agentes">Servicios Varios Agentes</SelectItem>
+                          <SelectItem value="Servicios Varios Camareros">Servicios Varios Camareros</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -378,22 +416,12 @@ const StaffForm = () => {
                     />
                     <p className="text-xs text-gray-500 mt-1">Firma</p>
                   </div>
-                  <div>
-                    <Label htmlFor="nombreAprobador">Vo. Bo. Administrador</Label>
-                    <Input
-                      id="nombreAprobador"
-                      value={formData.nombreAprobador}
-                      onChange={(e) => handleInputChange('nombreAprobador', e.target.value)}
-                      placeholder="Vo. Bo. Administrador o persona responsable"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Firma y sello</p>
-                  </div>
                 </div>
               </div>
 
               <div className="flex gap-4 pt-6">
-                <Button type="submit" className="flex-1">
-                  Guardar Orden
+                <Button type="submit" className="flex-1" disabled={isLoading}>
+                  {isLoading ? "Guardando..." : "Guardar Solicitud"}
                 </Button>
               </div>
             </CardContent>
