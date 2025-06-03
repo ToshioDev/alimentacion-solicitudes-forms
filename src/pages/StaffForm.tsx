@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { generateStaffPDF } from "@/utils/pdfGenerator";
 import FormRecordsSheet from "@/components/FormRecordsSheet";
 import { useStaffOrders } from "@/hooks/useStaffOrders";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StaffFormData {
   fecha: Date | undefined;
@@ -58,6 +59,36 @@ const StaffForm = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  interface PersonalInfo {
+    no_empleado: string;
+    nombre_completo: string;
+    plaza_nominal: string;
+    renglon_presupuestario?: string;
+  }
+
+  const fetchStaffByIBM = async (ibm: string) => {
+    if (!ibm) return;
+
+    // Cast to any to avoid type errors with custom RPC
+    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
+
+    if (error) {
+      toast({ title: "Error", description: "No se encontró personal con ese IBM", variant: "destructive" });
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const personal = data[0];
+      setFormData(prev => ({
+        ...prev,
+        nombreCompletoPersonal: personal.nombre_completo || "",
+        noEmpleado: personal.no_empleado || "",
+        cargo: personal.plaza_nominal || "",
+      }));
+      toast({ title: "Datos cargados", description: "Datos del personal cargados automáticamente", variant: "default" });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -73,7 +104,7 @@ const StaffForm = () => {
     
     
     if (!formData.justificacion) {
-      toast({ title: "Error", description: "La justificación es obligatoria", variant: "destructive" });
+      toast({ title: "Error", description: "La justificaciรณn es obligatoria", variant: "destructive" });
       return;
     }
 
@@ -102,7 +133,7 @@ const StaffForm = () => {
       cena: formData.cena,
       refaccion_nocturna: formData.refaccionNocturna,
       justificacion: formData.justificacion,
-      nombre_solicitante: formData.nombreSolicitante,
+      nombre_solicitante: "", // Campo removido, se envía vacío
       nombre_colaborador: formData.nombreColaborador,
       nombre_aprobador: "", // Remove this field as requested
     };
@@ -152,7 +183,7 @@ const StaffForm = () => {
       cena: record.cena || false,
       refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
       justificacion: record.justificacion || "",
-      nombreSolicitante: record.nombre_solicitante || record.nombreSolicitante || "",
+      nombreSolicitante: "", // Campo removido, se envía vacío
       nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
     });
     toast({ title: "Formulario cargado", description: "Se ha cargado el formulario para editar" });
@@ -172,7 +203,7 @@ const StaffForm = () => {
       cena: record.cena || false,
       refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
       justificacion: record.justificacion || "",
-      nombreSolicitante: record.nombre_solicitante || record.nombreSolicitante || "",
+      nombreSolicitante: "", // Campo removido, se envía vacío
       nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
     };
     generateStaffPDF(pdfData);
@@ -194,7 +225,7 @@ const StaffForm = () => {
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Solicitud de tiempos de alimentación para personal</h1>
+                  <h1 className="text-xl font-bold text-gray-900">Solicitud de tiempos de alimentaciรณn para personal</h1>
                   <p className="text-sm text-gray-600">Formulario para personal del hospital</p>
                 </div>
               </div>
@@ -218,15 +249,15 @@ const StaffForm = () => {
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
-              <CardTitle>SOLICITUD DE TIEMPOS DE ALIMENTACIÓN PARA PERSONAL</CardTitle>
+              <CardTitle>SOLICITUD DE TIEMPOS DE ALIMENTACIร�N PARA PERSONAL</CardTitle>
               <CardDescription>
-                Complete todos los campos requeridos para generar la solicitud de alimentación
+                Complete todos los campos requeridos para generar la solicitud de alimentaciรณn
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
               
               <div>
-                <h3 className="text-lg font-semibold mb-4">Información General</h3>
+                <h3 className="text-lg font-semibold mb-4">Informaciรณn General</h3>
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="fecha">Fecha *</Label>
@@ -258,8 +289,8 @@ const StaffForm = () => {
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-4">Información del Personal</h3>
-                <p className="text-sm text-gray-600 mb-4">Atentamente solicito a usted se brinde alimentación a:</p>
+                <h3 className="text-lg font-semibold mb-4">Informaciรณn del Personal Solicitante</h3>
+                <p className="text-sm text-gray-600 mb-4">Atentamente solicito a usted se brinde alimentaciรณn a:</p>
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="nombreCompletoPersonal">Nombre completo *</Label>
@@ -273,12 +304,18 @@ const StaffForm = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="ibm">IBM</Label>
-                      <Input
-                        id="ibm"
-                        value={formData.ibm}
-                        onChange={(e) => handleInputChange('ibm', e.target.value)}
-                        placeholder="Identificador IBM"
-                      />
+                    <Input
+                      id="ibm"
+                      value={formData.ibm}
+                      onChange={async (e) => {
+                        const value = e.target.value;
+                        handleInputChange('ibm', value);
+                        if (value.length >= 3) {
+                          await fetchStaffByIBM(value);
+                        }
+                      }}
+                      placeholder="Identificador IBM"
+                    />
                     </div>
                     <div>
                       <Label htmlFor="cargo">Cargo</Label>
@@ -299,7 +336,7 @@ const StaffForm = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Emergencia">Emergencia</SelectItem>
-                          <SelectItem value="Hospitalización">Hospitalización</SelectItem>
+                          <SelectItem value="Hospitalizaciรณn">Hospitalizaciรณn</SelectItem>
                           <SelectItem value="Servicios Varios Piloto">Servicios Varios Piloto</SelectItem>
                           <SelectItem value="Servicios Varios Agentes">Servicios Varios Agentes</SelectItem>
                           <SelectItem value="Servicios Varios Camareros">Servicios Varios Camareros</SelectItem>
@@ -315,9 +352,9 @@ const StaffForm = () => {
                         <SelectContent>
                           <SelectItem value="normal">Normal</SelectItem>
                           <SelectItem value="vegetariana">Vegetariana</SelectItem>
-                          <SelectItem value="diabetica">Diabética</SelectItem>
-                          <SelectItem value="hiposodica">Hiposódica</SelectItem>
-                          <SelectItem value="hipocalorica">Hipocalórica</SelectItem>
+                          <SelectItem value="diabetica">Diabรฉtica</SelectItem>
+                          <SelectItem value="hiposodica">Hiposรณdica</SelectItem>
+                          <SelectItem value="hipocalorica">Hipocalรณrica</SelectItem>
                           <SelectItem value="sin-gluten">Sin gluten</SelectItem>
                         </SelectContent>
                       </Select>
@@ -360,20 +397,20 @@ const StaffForm = () => {
                       checked={formData.refaccionNocturna}
                       onCheckedChange={(checked) => handleInputChange('refaccionNocturna', checked)}
                     />
-                    <Label htmlFor="refaccionNocturna">Refacción nocturna</Label>
+                    <Label htmlFor="refaccionNocturna">Refacciรณn nocturna</Label>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold mb-4">Justificación</h3>
+                <h3 className="text-lg font-semibold mb-4">Justificaciรณn</h3>
                 <div>
-                  <Label htmlFor="justificacion">Justificación *</Label>
+                  <Label htmlFor="justificacion">Justificaciรณn *</Label>
                   <Textarea
                     id="justificacion"
                     value={formData.justificacion}
                     onChange={(e) => handleInputChange('justificacion', e.target.value)}
-                    placeholder="Ingrese la justificación para la solicitud de alimentación"
+                    placeholder="Ingrese la justificaciรณn para la solicitud de alimentaciรณn"
                     rows={4}
                   />
                 </div>
@@ -384,24 +421,14 @@ const StaffForm = () => {
                 <p className="text-sm text-gray-600 mb-4">Atentamente,</p>
                 <div className="grid gap-6">
                   <div>
-                    <Label htmlFor="nombreSolicitante">Nombre del Solicitante</Label>
-                    <Input
-                      id="nombreSolicitante"
-                      value={formData.nombreSolicitante}
-                      onChange={(e) => handleInputChange('nombreSolicitante', e.target.value)}
-                      placeholder="Personal responsable del servicio solicitante"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Firma y sello</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="nombreColaborador">Nombre del Colaborador</Label>
+                    <Label htmlFor="nombreColaborador">Responsable del Servicio Solicitante</Label>
                     <Input
                       id="nombreColaborador"
                       value={formData.nombreColaborador}
                       onChange={(e) => handleInputChange('nombreColaborador', e.target.value)}
-                      placeholder="Colaborador"
+                      placeholder="Personal responsable del servicio solicitante"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Firma</p>
+                    <p className="text-xs text-gray-500 mt-1">Firma y sello</p>
                   </div>
                 </div>
               </div>

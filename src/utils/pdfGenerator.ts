@@ -301,26 +301,23 @@ export const generateStaffPDF = (data: StaffFormData) => {
     <div class="section">
       <div>Atentamente solicito a usted se brinde alimentación a:</div>
 
+      <div class="section-title">Datos del solicitante</div>
       <div class="field">
         <span class="field-label">Nombre completo:</span>
         <span class="field-value">${data.nombreCompletoPersonal || ''}</span>
       </div>
-
       <div class="field">
         <span class="field-label">No. empleado:</span>
         <span class="field-value">${data.noEmpleado || ''}</span>
       </div>
-
       <div class="field">
         <span class="field-label">Cargo:</span>
         <span class="field-value">${data.cargo || ''}</span>
       </div>
-
       <div class="field">
         <span class="field-label">Servicio:</span>
         <span class="field-value">${data.servicio || ''}</span>
       </div>
-
       <div class="field">
         <span class="field-label">Tipo de dieta:</span>
         <span class="field-value">${data.tipoDieta || ''}</span>
@@ -328,7 +325,15 @@ export const generateStaffPDF = (data: StaffFormData) => {
     </div>
 
     <div class="section">
-      <div>TIEMPOS DE COMIDA SOLICITADOS</div>
+      <div class="section-title">Solicitante</div>
+      <div class="field">
+        <span class="field-label">Nombre:</span>
+        <span class="field-value">${data.nombreSolicitante || ''}</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">TIEMPOS DE COMIDA SOLICITADOS</div>
       <div class="checkbox-group" style="gap: 10px;">
         <div class="checkbox-item" style="gap: 5px;">
           <span class="checkbox" style="width: 15px; height: 15px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 15px; font-size: 14px;">${data.desayuno ? 'X' : ''}</span>
@@ -360,17 +365,13 @@ export const generateStaffPDF = (data: StaffFormData) => {
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-right: 20px;">
           Firma y sello<br>
           <div style="min-height: 30px; margin-top: 20px;">${data.nombreSolicitante || ''}</div>
-          Personal responsable del servicio solicitante
         </div>
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px;">
           Firma y sello<br>
-          <div style="min-height: 30px; margin-top: 20px;">&nbsp;</div>
-          ${data.nombreSolicitante || ''}
+          <div style="min-height: 30px; margin-top: 20px;">${data.nombreColaborador || ''}</div>
         </div>
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-left: 20px;">
-          Firma y sello<br>
-          <div style="min-height: 30px; margin-top: 20px;">${data.nombreColaborador || ''}</div>
-          Solicitante
+          <strong>Recibí conforme</strong>
         </div>
       </div>
     </div>
