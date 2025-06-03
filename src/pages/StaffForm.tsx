@@ -71,10 +71,6 @@ const StaffForm = () => {
       return;
     }
     
-    if (!formData.noEmpleado) {
-      toast({ title: "Error", description: "El número de empleado es obligatorio", variant: "destructive" });
-      return;
-    }
     
     if (!formData.justificacion) {
       toast({ title: "Error", description: "La justificación es obligatoria", variant: "destructive" });
@@ -274,16 +270,7 @@ const StaffForm = () => {
                       placeholder="Ingrese el nombre completo del personal"
                     />
                   </div>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="noEmpleado">No. empleado *</Label>
-                      <Input
-                        id="noEmpleado"
-                        value={formData.noEmpleado}
-                        onChange={(e) => handleInputChange('noEmpleado', e.target.value)}
-                        placeholder="Número de empleado"
-                      />
-                    </div>
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="ibm">IBM</Label>
                       <Input
