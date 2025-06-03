@@ -282,7 +282,7 @@ export const generatePatientPDF = (data: PatientFormData) => {
 
 export const generateStaffPDF = (data: StaffFormData) => {
   const fechaStr = data.fecha ? format(data.fecha, "dd/MM/yyyy") : "___________";
-  
+
   const content = `
     <div class="header">
       <img src="/lovable-uploads/31eb0619-cbda-4f2f-a770-0972a9741cda.png" alt="Logo IGSS" class="logo">
@@ -292,7 +292,6 @@ export const generateStaffPDF = (data: StaffFormData) => {
     </div>
 
     <div class="section">
-      <div class="section-title">INFORMACIÓN GENERAL</div>
       <div class="field">
         <span class="field-label">Fecha:</span>
         <span class="field-value">${fechaStr}</span>
@@ -300,36 +299,28 @@ export const generateStaffPDF = (data: StaffFormData) => {
     </div>
 
     <div class="section">
-      <div class="section-title">INFORMACIÓN DEL PERSONAL</div>
-      <div class="intro-text">Atentamente solicito a usted se brinde alimentación a:</div>
-      
+      <div>Atentamente solicito a usted se brinde alimentación a:</div>
+
       <div class="field">
         <span class="field-label">Nombre completo:</span>
         <span class="field-value">${data.nombreCompletoPersonal || ''}</span>
       </div>
-      
+
       <div class="field">
         <span class="field-label">No. empleado:</span>
         <span class="field-value">${data.noEmpleado || ''}</span>
       </div>
-      
-      ${data.ibm ? `
-      <div class="field">
-        <span class="field-label">IBM:</span>
-        <span class="field-value">${data.ibm}</span>
-      </div>
-      ` : ''}
-      
+
       <div class="field">
         <span class="field-label">Cargo:</span>
         <span class="field-value">${data.cargo || ''}</span>
       </div>
-      
+
       <div class="field">
         <span class="field-label">Servicio:</span>
         <span class="field-value">${data.servicio || ''}</span>
       </div>
-      
+
       <div class="field">
         <span class="field-label">Tipo de dieta:</span>
         <span class="field-value">${data.tipoDieta || ''}</span>
@@ -337,44 +328,49 @@ export const generateStaffPDF = (data: StaffFormData) => {
     </div>
 
     <div class="section">
-      <div class="section-title">TIEMPOS DE COMIDA SOLICITADOS</div>
-      <div class="checkbox-group">
-        <div class="checkbox-item">
-          <span class="checkbox">${data.desayuno ? '✓' : ''}</span>
+      <div>TIEMPOS DE COMIDA SOLICITADOS</div>
+      <div class="checkbox-group" style="gap: 10px;">
+        <div class="checkbox-item" style="gap: 5px;">
+          <span class="checkbox" style="width: 15px; height: 15px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 15px; font-size: 14px;">${data.desayuno ? 'X' : ''}</span>
           <span>Desayuno</span>
         </div>
-        <div class="checkbox-item">
-          <span class="checkbox">${data.almuerzo ? '✓' : ''}</span>
+        <div class="checkbox-item" style="gap: 5px;">
+          <span class="checkbox" style="width: 15px; height: 15px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 15px; font-size: 14px;">${data.almuerzo ? 'X' : ''}</span>
           <span>Almuerzo</span>
         </div>
-        <div class="checkbox-item">
-          <span class="checkbox">${data.cena ? '✓' : ''}</span>
+        <div class="checkbox-item" style="gap: 5px;">
+          <span class="checkbox" style="width: 15px; height: 15px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 15px; font-size: 14px;">${data.cena ? 'X' : ''}</span>
           <span>Cena</span>
         </div>
-        <div class="checkbox-item">
-          <span class="checkbox">${data.refaccionNocturna ? '✓' : ''}</span>
+        <div class="checkbox-item" style="gap: 5px;">
+          <span class="checkbox" style="width: 15px; height: 15px; border: 1px solid #000; display: inline-block; text-align: center; line-height: 15px; font-size: 14px;">${data.refaccionNocturna ? 'X' : ''}</span>
           <span>Refacción nocturna</span>
         </div>
       </div>
     </div>
 
     <div class="section">
-      <div class="section-title">JUSTIFICACIÓN</div>
-      <div class="justification">${data.justificacion || ''}</div>
+      <div>JUSTIFICACIÓN</div>
+      <div class="justification" style="border: 1px solid #000; min-height: 60px; padding: 10px; margin-top: 5px;">${data.justificacion || ''}</div>
     </div>
 
-    <div class="section">
-      <div class="intro-text">Atentamente,</div>
-      <div class="signatures">
-        <div class="signature-box">
-          <div class="signature-label">Firma y sello</div>
-          <div style="margin: 20px 0; min-height: 30px;">${data.nombreSolicitante || ''}</div>
-          <div class="signature-desc">Personal responsable del servicio solicitante</div>
+    <div class="section" style="margin-top: 40px;">
+      <div>Atentamente,</div>
+      <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+        <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-right: 20px;">
+          Firma y sello<br>
+          <div style="min-height: 30px; margin-top: 20px;">${data.nombreSolicitante || ''}</div>
+          Personal responsable del servicio solicitante
         </div>
-        <div class="signature-box">
-          <div class="signature-label">Firma</div>
-          <div style="margin: 20px 0; min-height: 30px;">${data.nombreColaborador || ''}</div>
-          <div class="signature-desc">Colaborador</div>
+        <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px;">
+          Firma y sello<br>
+          <div style="min-height: 30px; margin-top: 20px;">&nbsp;</div>
+          ${data.nombreSolicitante || ''}
+        </div>
+        <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-left: 20px;">
+          Firma y sello<br>
+          <div style="min-height: 30px; margin-top: 20px;">${data.nombreColaborador || ''}</div>
+          Solicitante
         </div>
       </div>
     </div>
