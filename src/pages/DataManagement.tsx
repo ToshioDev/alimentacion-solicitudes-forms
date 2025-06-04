@@ -43,6 +43,13 @@ const DataManagement = () => {
   // Merge imported staff with existing staff orders
   const combinedStaffOrders = [...staffOrders, ...staffList];
 
+// Función para determinar si un id es válido para borrar en Supabase
+const isValidId = (id: string | undefined) => {
+  if (!id) return false;
+  // Evitar ids que comienzan con "imported-" que no existen en Supabase
+  return !id.startsWith("imported-");
+};
+
   const filteredPatientOrders = patientOrders.filter(order =>
     order.nombre_completo_paciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.afiliacion_cui.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -295,13 +302,27 @@ const DataManagement = () => {
                                 >
                                   <Download className="w-3 h-3" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => order.id && deletePatientOrder(order.id)}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+{isValidId(order.id) ? (
+  <Button
+    size="sm"
+    variant="destructive"
+    onClick={() => order.id && deletePatientOrder(order.id)}
+  >
+    <Trash2 className="w-3 h-3" />
+  </Button>
+) : (
+  <Button
+    size="sm"
+    variant="destructive"
+    onClick={() => {
+      // Eliminar localmente el registro importado
+      setStaffList((prev) => prev.filter((item) => item.id !== order.id));
+      toast({ title: "Éxito", description: "Orden importada eliminada localmente." });
+    }}
+  >
+    <Trash2 className="w-3 h-3" />
+  </Button>
+)}
                               </div>
                             </TableCell>
                           </TableRow>

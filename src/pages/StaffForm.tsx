@@ -16,6 +16,7 @@ import { generateStaffPDF } from "@/utils/pdfGenerator";
 import FormRecordsSheet from "@/components/FormRecordsSheet";
 import { useStaffOrders } from "@/hooks/useStaffOrders";
 import { supabase } from "@/integrations/supabase/client";
+import { createClient } from '@supabase/supabase-js';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface StaffFormData {
@@ -41,28 +42,34 @@ interface PersonalInfo {
   plaza_nominal: string;
 }
 
+const anonSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+
 const StaffForm = () => {
   const navigate = useNavigate();
   const { createOrder, orders, isLoading } = useStaffOrders();
 
-  const [formData, setFormData] = useState<StaffFormData>({
-    fecha: undefined,
-    nombreCompletoPersonal: "",
-    noEmpleado: "",
-    ibm: "",
-    servicio: "",
-    cargo: "",
-    tipoDieta: "",
-    desayuno: false,
-    almuerzo: false,
-    cena: false,
-    refaccionNocturna: false,
-    justificacion: "",
-    nombreSolicitante: "",
-    nombreColaborador: "",
-  });
+const [formData, setFormData] = useState<StaffFormData>({
+  fecha: new Date(),
+  nombreCompletoPersonal: "",
+  noEmpleado: "",
+  ibm: "",
+  servicio: "",
+  cargo: "",
+  tipoDieta: "",
+  desayuno: false,
+  almuerzo: false,
+  cena: false,
+  refaccionNocturna: false,
+  justificacion: "",
+  nombreSolicitante: "",
+  nombreColaborador: "",
+});
 
   const [ibmResults, setIbmResults] = useState<PersonalInfo[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const handleGeneratePDF = () => {
     if (!formData.nombreCompletoPersonal) {
@@ -145,21 +152,28 @@ const StaffForm = () => {
   };
 
   const fetchStaffByIBMSimilar = async (ibm: string) => {
+    console.log("fetchStaffByIBMSimilar called with:", ibm);
     if (!ibm) {
       setIbmResults([]);
       return;
     }
-    // Usar función RPC para buscar IBM similares en personal_info
-    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
+    // Consulta directa a la tabla personal_info con filtro LIKE para IBM similares
+    const { data, error } = await anonSupabase
+      .from('personal_info' as any)
+      .select('no_empleado, nombre_completo, plaza_nominal')
+      .ilike('no_empleado', `%${ibm}%`)
+      .limit(10);
+    console.log("fetchStaffByIBMSimilar result data:", data, "error:", error);
 
     if (error) {
-      toast({ title: "Error", description: "Error al buscar IBM similares", variant: "destructive" });
+      console.error("Error al buscar IBM similares:", error);
+      toast({ title: "Error", description: `Error al buscar IBM similares: ${error.message}`, variant: "destructive" });
       setIbmResults([]);
       return;
     }
 
-    if (data && data.length > 0) {
-      setIbmResults(data);
+    if (Array.isArray(data) && data.length > 0) {
+      setIbmResults(data as unknown as PersonalInfo[]);
     } else {
       setIbmResults([]);
     }
@@ -327,37 +341,56 @@ const StaffForm = () => {
                           value={formData.ibm}
                           onChange={async (e) => {
                             const value = e.target.value;
+                            console.log("IBM input changed:", value);
                             handleInputChange('ibm', value);
-                            if (value.length >= 3) {
+                            if (value.length > 0) {
+                              console.log("Consultando Supabase con IBM:", value);
                               await fetchStaffByIBMSimilar(value);
+                              setShowSuggestions(true);
                             } else {
                               setIbmResults([]);
+                              setShowSuggestions(false);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Ocultar sugerencias al perder foco
+                            setTimeout(() => setShowSuggestions(false), 200);
+                          }}
+                          onFocus={() => {
+                            // Mostrar sugerencias al enfocar si hay resultados
+                            if (ibmResults.length > 0) {
+                              setShowSuggestions(true);
                             }
                           }}
                           placeholder="Identificador IBM"
                           autoComplete="off"
                         />
-                        {ibmResults.length > 0 && (
+                        {formData.ibm.length > 0 && showSuggestions && (
                           <div className="absolute z-10 bg-white border border-gray-300 rounded-md max-h-60 overflow-auto shadow-lg mt-1"
                             style={{ width: '100%' }}
                           >
-                            {ibmResults.map((item) => (
-                              <div
-                                key={item.no_empleado}
-                                className="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                                onClick={() => {
-                                  handleInputChange('ibm', item.no_empleado);
-                                  handleInputChange('nombreCompletoPersonal', item.nombre_completo);
-                                  handleInputChange('noEmpleado', item.no_empleado);
-                                  handleInputChange('cargo', item.plaza_nominal);
-                                  setIbmResults([]);
-                                }}
-                              >
-                                <div className="font-semibold">{item.no_empleado}</div>
-                                <div className="text-sm text-gray-600">{item.nombre_completo}</div>
-                                <div className="text-xs text-gray-500">{item.plaza_nominal}</div>
-                              </div>
-                            ))}
+                            {ibmResults.length > 0 ? (
+                              ibmResults.map((item) => (
+                                <div
+                                  key={item.no_empleado}
+                                  className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                  onClick={() => {
+                                    handleInputChange('ibm', item.no_empleado);
+                                    handleInputChange('nombreCompletoPersonal', item.nombre_completo);
+                                    handleInputChange('noEmpleado', item.no_empleado);
+                                    handleInputChange('cargo', item.plaza_nominal);
+                                    setIbmResults([]);
+                                    setShowSuggestions(false);
+                                  }}
+                                >
+                                  <div className="font-semibold">{item.no_empleado}</div>
+                                  <div className="text-sm text-gray-600">{item.nombre_completo}</div>
+                                  <div className="text-xs text-gray-500">{item.plaza_nominal}</div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="px-4 py-2 text-sm text-gray-500">No se encontraron resultados</div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -394,6 +427,23 @@ const StaffForm = () => {
                           <SelectItem value="Servicios Varios Piloto">Servicios Varios Piloto</SelectItem>
                           <SelectItem value="Servicios Varios Agentes">Servicios Varios Agentes</SelectItem>
                           <SelectItem value="Servicios Varios Camareros">Servicios Varios Camareros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="tipoDieta">Tipo de Dieta</Label>
+                      <Select value={formData.tipoDieta} onValueChange={(value) => handleInputChange('tipoDieta', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar tipo de dieta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Normal">Normal</SelectItem>
+                          <SelectItem value="Diabetes">Diabetes</SelectItem>
+                          <SelectItem value="Hipertensión">Hipertensión</SelectItem>
+                          <SelectItem value="Renal">Renal</SelectItem>
+                          <SelectItem value="Vegetariana">Vegetariana</SelectItem>
+                          <SelectItem value="Vegana">Vegana</SelectItem>
+                          <SelectItem value="Sin Sal">Sin Sal</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

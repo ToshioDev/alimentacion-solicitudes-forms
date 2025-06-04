@@ -324,13 +324,7 @@ export const generateStaffPDF = (data: StaffFormData) => {
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">Solicitante</div>
-      <div class="field">
-        <span class="field-label">Nombre:</span>
-        <span class="field-value">${data.nombreSolicitante || ''}</span>
-      </div>
-    </div>
+    <!-- Removed Solicitante section as requested -->
 
     <div class="section">
       <div class="section-title">TIEMPOS DE COMIDA SOLICITADOS</div>
@@ -364,14 +358,19 @@ export const generateStaffPDF = (data: StaffFormData) => {
       <div style="display: flex; justify-content: space-between; margin-top: 40px;">
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-right: 20px;">
           Firma y sello<br>
-          <div style="min-height: 30px; margin-top: 20px;">${data.nombreSolicitante || ''}</div>
+          <div style="min-height: 30px; margin-top: 20px; font-weight: bold; font-size: 14px;">${data.nombreCompletoPersonal || ''}</div>
+          <div style="font-size: 12px; color: #333;">Solicitante</div>
         </div>
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px;">
           Firma y sello<br>
           <div style="min-height: 30px; margin-top: 20px;">${data.nombreColaborador || ''}</div>
+          <div style="font-size: 12px; color: #333;">Personal responsable del servicio solicitante</div>
         </div>
         <div style="text-align: center; flex: 1; border-top: 1px solid #000; padding-top: 5px; margin-left: 20px;">
-          <strong>Recibí conforme</strong>
+          Firma y sello<br>
+          Recibí <br>
+          conforme <br>
+          Solicitante
         </div>
       </div>
     </div>

@@ -45,13 +45,14 @@ const App: React.FC = () => {
                     <PersonalManagement />
                   </AuthGuard>
                 } />
-                {/* Solo la gestión de datos requiere autenticación */}
-                <Route path="/gestion-datos" element={
-                  <AuthGuard requireAuth={true}>
-                    <DataManagement />
-                  </AuthGuard>
-                } />
-                <Route path="*" element={<NotFound />} />
+              {/* Solo la gestión de datos requiere autenticación */}
+              <Route path="/gestion-datos" element={
+                <AuthGuard requireAuth={true}>
+                  <DataManagement />
+                </AuthGuard>
+              } />
+              <Route path="/login" element={<Auth />} />
+              <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
           </AuthProvider>

@@ -17,7 +17,7 @@ const AuthGuard = ({ children, requireAuth = false }: AuthGuardProps) => {
     if (!loading) {
       if (requireAuth && !user) {
         // Redirect to admin page if authentication is required but user is not logged in
-        navigate('/admin', { state: { from: location.pathname } });
+        navigate('/login', { state: { from: location.pathname } });
       } else if (!requireAuth && user && location.pathname === '/admin') {
         // Redirect authenticated users away from admin page
         navigate('/');
