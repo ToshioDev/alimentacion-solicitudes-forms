@@ -148,7 +148,7 @@ const FormRecordsSheet = ({ formType, onEditRecord, onGeneratePDF }: FormRecords
 
         <div className="mt-6">
           <Tabs defaultValue="completed" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="completed" className="gap-2">
                 Llenados
                 <Badge variant="secondary">{completedRecords.length}</Badge>
@@ -156,9 +156,6 @@ const FormRecordsSheet = ({ formType, onEditRecord, onGeneratePDF }: FormRecords
               <TabsTrigger value="pending" className="gap-2">
                 Pendientes
                 <Badge variant="outline">{pendingRecords.length}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value="add" className="gap-2">
-                Agregar Personal
               </TabsTrigger>
             </TabsList>
 
@@ -247,91 +244,6 @@ const FormRecordsSheet = ({ formType, onEditRecord, onGeneratePDF }: FormRecords
                   </Card>
                 ))
               )}
-            </TabsContent>
-
-            <TabsContent value="add" className="mt-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agregar Personal Manualmente</CardTitle>
-                  <CardDescription>Rellena los datos para agregar un nuevo registro</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Nombre Completo *</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.nombreCompletoPersonal || ''}
-                      onChange={(e) => handleInputChange('nombreCompletoPersonal', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Fecha de Creación *</label>
-                    <input
-                      type="date"
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.fechaCreacion ? newRecord.fechaCreacion.slice(0, 10) : ''}
-                      onChange={(e) => handleInputChange('fechaCreacion', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Cargo</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.cargo || ''}
-                      onChange={(e) => handleInputChange('cargo', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Servicio</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.servicio || ''}
-                      onChange={(e) => handleInputChange('servicio', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Tipo de Dieta</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.tipoDieta || ''}
-                      onChange={(e) => handleInputChange('tipoDieta', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Justificación</label>
-                    <textarea
-                      className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2"
-                      value={newRecord.justificacion || ''}
-                      onChange={(e) => handleInputChange('justificacion', e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button onClick={handleAddRecord} disabled={uploading}>
-                      {uploading ? 'Agregando...' : 'Agregar Registro'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle>Subir archivo Excel</CardTitle>
-                  <CardDescription>Sube un archivo Excel para agregar múltiples registros</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-gray-300 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

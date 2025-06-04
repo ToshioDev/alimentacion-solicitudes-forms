@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { CalendarIcon, ArrowLeft, FileText } from "lucide-react";
@@ -17,6 +16,7 @@ import { generateStaffPDF } from "@/utils/pdfGenerator";
 import FormRecordsSheet from "@/components/FormRecordsSheet";
 import { useStaffOrders } from "@/hooks/useStaffOrders";
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface StaffFormData {
   fecha: Date | undefined;
@@ -35,9 +35,16 @@ interface StaffFormData {
   nombreColaborador: string;
 }
 
+interface PersonalInfo {
+  no_empleado: string;
+  nombre_completo: string;
+  plaza_nominal: string;
+}
+
 const StaffForm = () => {
   const navigate = useNavigate();
   const { createOrder, orders, isLoading } = useStaffOrders();
+
   const [formData, setFormData] = useState<StaffFormData>({
     fecha: undefined,
     nombreCompletoPersonal: "",
@@ -55,111 +62,7 @@ const StaffForm = () => {
     nombreColaborador: "",
   });
 
-  const handleInputChange = (field: keyof StaffFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  interface PersonalInfo {
-    no_empleado: string;
-    nombre_completo: string;
-    plaza_nominal: string;
-    renglon_presupuestario?: string;
-  }
-
-  const fetchStaffByIBM = async (ibm: string) => {
-    if (!ibm) return;
-
-    // Cast to any to avoid type errors with custom RPC
-    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
-
-    if (error) {
-      toast({ title: "Error", description: "No se encontró personal con ese IBM", variant: "destructive" });
-      return;
-    }
-
-    if (data && data.length > 0) {
-      const personal = data[0];
-      setFormData(prev => ({
-        ...prev,
-        nombreCompletoPersonal: personal.nombre_completo || "",
-        noEmpleado: personal.no_empleado || "",
-        cargo: personal.plaza_nominal || "",
-      }));
-      toast({ title: "Datos cargados", description: "Datos del personal cargados automáticamente", variant: "default" });
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.fecha) {
-      toast({ title: "Error", description: "La fecha es obligatoria", variant: "destructive" });
-      return;
-    }
-    
-    if (!formData.nombreCompletoPersonal) {
-      toast({ title: "Error", description: "El nombre completo es obligatorio", variant: "destructive" });
-      return;
-    }
-    
-    
-    if (!formData.justificacion) {
-      toast({ title: "Error", description: "La justificaciรณn es obligatoria", variant: "destructive" });
-      return;
-    }
-
-    const tiemposSeleccionados = [
-      formData.desayuno,
-      formData.almuerzo,
-      formData.cena,
-      formData.refaccionNocturna
-    ].some(tiempo => tiempo);
-
-    if (!tiemposSeleccionados) {
-      toast({ title: "Error", description: "Debe seleccionar al menos un tiempo de comida", variant: "destructive" });
-      return;
-    }
-
-    // Save to Supabase
-    const orderData = {
-      fecha: format(formData.fecha, "yyyy-MM-dd"),
-      nombre_completo_personal: formData.nombreCompletoPersonal,
-      no_empleado: formData.noEmpleado,
-      servicio: formData.servicio,
-      cargo: formData.cargo,
-      tipo_dieta: formData.tipoDieta,
-      desayuno: formData.desayuno,
-      almuerzo: formData.almuerzo,
-      cena: formData.cena,
-      refaccion_nocturna: formData.refaccionNocturna,
-      justificacion: formData.justificacion,
-      nombre_solicitante: "", // Campo removido, se envía vacío
-      nombre_colaborador: formData.nombreColaborador,
-      nombre_aprobador: "", // Remove this field as requested
-    };
-
-    const result = await createOrder(orderData);
-    
-    if (result) {
-      // Reset form on success
-      setFormData({
-        fecha: undefined,
-        nombreCompletoPersonal: "",
-        noEmpleado: "",
-        ibm: "",
-        servicio: "",
-        cargo: "",
-        tipoDieta: "",
-        desayuno: false,
-        almuerzo: false,
-        cena: false,
-        refaccionNocturna: false,
-        justificacion: "",
-        nombreSolicitante: "",
-        nombreColaborador: "",
-      });
-    }
-  };
+  const [ibmResults, setIbmResults] = useState<PersonalInfo[]>([]);
 
   const handleGeneratePDF = () => {
     if (!formData.nombreCompletoPersonal) {
@@ -209,6 +112,130 @@ const StaffForm = () => {
     generateStaffPDF(pdfData);
   };
 
+  const handleInputChange = (field: keyof StaffFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const fetchStaffByIBM = async (ibm: string) => {
+    if (!ibm) {
+      setIbmResults([]);
+      return;
+    }
+
+    // Cast to any to avoid type errors with custom RPC
+    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
+
+    if (error) {
+      setIbmResults([]);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      setIbmResults(data);
+      const personal = data[0];
+      setFormData(prev => ({
+        ...prev,
+        nombreCompletoPersonal: personal.nombre_completo || "",
+        noEmpleado: personal.no_empleado || "",
+        cargo: personal.plaza_nominal || "",
+      }));
+    } else {
+      setIbmResults([]);
+    }
+  };
+
+  const fetchStaffByIBMSimilar = async (ibm: string) => {
+    if (!ibm) {
+      setIbmResults([]);
+      return;
+    }
+    // Usar función RPC para buscar IBM similares en personal_info
+    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
+
+    if (error) {
+      toast({ title: "Error", description: "Error al buscar IBM similares", variant: "destructive" });
+      setIbmResults([]);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      setIbmResults(data);
+    } else {
+      setIbmResults([]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.fecha) {
+      toast({ title: "Error", description: "La fecha es obligatoria", variant: "destructive" });
+      return;
+    }
+
+    if (!formData.nombreCompletoPersonal) {
+      toast({ title: "Error", description: "El nombre completo es obligatorio", variant: "destructive" });
+      return;
+    }
+
+    if (!formData.justificacion) {
+      toast({ title: "Error", description: "La justificación es obligatoria", variant: "destructive" });
+      return;
+    }
+
+    const tiemposSeleccionados = [
+      formData.desayuno,
+      formData.almuerzo,
+      formData.cena,
+      formData.refaccionNocturna
+    ].some(tiempo => tiempo);
+
+    if (!tiemposSeleccionados) {
+      toast({ title: "Error", description: "Debe seleccionar al menos un tiempo de comida", variant: "destructive" });
+      return;
+    }
+
+    // Save to Supabase
+    const orderData = {
+      fecha: format(formData.fecha, "yyyy-MM-dd"),
+      nombre_completo_personal: formData.nombreCompletoPersonal,
+      no_empleado: formData.noEmpleado,
+      servicio: formData.servicio,
+      cargo: formData.cargo,
+      tipo_dieta: formData.tipoDieta,
+      desayuno: formData.desayuno,
+      almuerzo: formData.almuerzo,
+      cena: formData.cena,
+      refaccion_nocturna: formData.refaccionNocturna,
+      justificacion: formData.justificacion,
+      nombre_solicitante: "", // Campo removido, se envía vacío
+      nombre_colaborador: formData.nombreColaborador,
+      nombre_aprobador: "", // Remove this field as requested
+    };
+
+    const result = await createOrder(orderData);
+
+    if (result) {
+      // Reset form on success
+      setFormData({
+        fecha: undefined,
+        nombreCompletoPersonal: "",
+        noEmpleado: "",
+        ibm: "",
+        servicio: "",
+        cargo: "",
+        tipoDieta: "",
+        desayuno: false,
+        almuerzo: false,
+        cena: false,
+        refaccionNocturna: false,
+        justificacion: "",
+        nombreSolicitante: "",
+        nombreColaborador: "",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-100">
       {/* Header */}
@@ -256,23 +283,23 @@ const StaffForm = () => {
             </CardHeader>
             <CardContent className="space-y-8">
               
-              <div>
+              <section>
                 <h3 className="text-lg font-semibold mb-4">Información General</h3>
-                <div className="grid gap-4">
+                <div className="grid gap-2 max-w-sm">
                   <div>
                     <Label htmlFor="fecha">Fecha *</Label>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formData.fecha && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.fecha ? format(formData.fecha, "PPP") : <span>Seleccionar fecha</span>}
-                        </Button>
+                        <div className="relative w-full">
+                          <Input
+                            id="fecha"
+                            placeholder="Selecciona una fecha"
+                            value={formData.fecha ? formData.fecha.toLocaleDateString() : ""}
+                            readOnly
+                            className="cursor-pointer pr-8"
+                          />
+                          <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 opacity-50 pointer-events-none" />
+                        </div>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
@@ -280,43 +307,72 @@ const StaffForm = () => {
                           selected={formData.fecha}
                           onSelect={(date) => handleInputChange('fecha', date)}
                           initialFocus
-                          className="p-3 pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div>
+              <section>
                 <h3 className="text-lg font-semibold mb-4">Información del Personal Solicitante</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente solicito a usted se brinde alimentación a:</p>
                 <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="nombreCompletoPersonal">Nombre completo *</Label>
-                    <Input
-                      id="nombreCompletoPersonal"
-                      value={formData.nombreCompletoPersonal}
-                      onChange={(e) => handleInputChange('nombreCompletoPersonal', e.target.value)}
-                      placeholder="Ingrese el nombre completo del personal"
-                    />
-                  </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="ibm">IBM</Label>
-                    <Input
-                      id="ibm"
-                      value={formData.ibm}
-                      onChange={async (e) => {
-                        const value = e.target.value;
-                        handleInputChange('ibm', value);
-                        if (value.length >= 3) {
-                          await fetchStaffByIBM(value);
-                        }
-                      }}
-                      placeholder="Identificador IBM"
-                    />
+                      <div className="relative">
+                        <Input
+                          id="ibm"
+                          value={formData.ibm}
+                          onChange={async (e) => {
+                            const value = e.target.value;
+                            handleInputChange('ibm', value);
+                            if (value.length >= 3) {
+                              await fetchStaffByIBMSimilar(value);
+                            } else {
+                              setIbmResults([]);
+                            }
+                          }}
+                          placeholder="Identificador IBM"
+                          autoComplete="off"
+                        />
+                        {ibmResults.length > 0 && (
+                          <div className="absolute z-10 bg-white border border-gray-300 rounded-md max-h-60 overflow-auto shadow-lg mt-1"
+                            style={{ width: '100%' }}
+                          >
+                            {ibmResults.map((item) => (
+                              <div
+                                key={item.no_empleado}
+                                className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                                onClick={() => {
+                                  handleInputChange('ibm', item.no_empleado);
+                                  handleInputChange('nombreCompletoPersonal', item.nombre_completo);
+                                  handleInputChange('noEmpleado', item.no_empleado);
+                                  handleInputChange('cargo', item.plaza_nominal);
+                                  setIbmResults([]);
+                                }}
+                              >
+                                <div className="font-semibold">{item.no_empleado}</div>
+                                <div className="text-sm text-gray-600">{item.nombre_completo}</div>
+                                <div className="text-xs text-gray-500">{item.plaza_nominal}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <div>
+                      <Label htmlFor="nombreCompletoPersonal">Nombre completo *</Label>
+                      <Input
+                        id="nombreCompletoPersonal"
+                        value={formData.nombreCompletoPersonal}
+                        onChange={(e) => handleInputChange('nombreCompletoPersonal', e.target.value)}
+                        placeholder="Ingrese el nombre completo del personal"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4 mt-4">
                     <div>
                       <Label htmlFor="cargo">Cargo</Label>
                       <Input
@@ -326,45 +382,26 @@ const StaffForm = () => {
                         placeholder="Cargo del empleado"
                       />
                     </div>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                    <Label htmlFor="servicio">Servicio</Label>
-                    <Select value={formData.servicio} onValueChange={(value) => handleInputChange('servicio', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar servicio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Emergencia">Emergencia</SelectItem>
-                        <SelectItem value="Hospitalización">Hospitalización</SelectItem>
-                        <SelectItem value="Servicios Varios Piloto">Servicios Varios Piloto</SelectItem>
-                        <SelectItem value="Servicios Varios Agentes">Servicios Varios Agentes</SelectItem>
-                        <SelectItem value="Servicios Varios Camareros">Servicios Varios Camareros</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    </div>
-                    <div>
-                    <Label htmlFor="tipoDieta">Tipo de dieta</Label>
-                    <Select value={formData.tipoDieta} onValueChange={(value) => handleInputChange('tipoDieta', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tipo de dieta" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="vegetariana">Vegetariana</SelectItem>
-                        <SelectItem value="diabetica">Diabética</SelectItem>
-                        <SelectItem value="hiposodica">Hiposódica</SelectItem>
-                        <SelectItem value="hipocalorica">Hipocalórica</SelectItem>
-                        <SelectItem value="sin-gluten">Sin gluten</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Label htmlFor="servicio">Servicio</Label>
+                      <Select value={formData.servicio} onValueChange={(value) => handleInputChange('servicio', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar servicio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Emergencia">Emergencia</SelectItem>
+                          <SelectItem value="Hospitalización">Hospitalización</SelectItem>
+                          <SelectItem value="Servicios Varios Piloto">Servicios Varios Piloto</SelectItem>
+                          <SelectItem value="Servicios Varios Agentes">Servicios Varios Agentes</SelectItem>
+                          <SelectItem value="Servicios Varios Camareros">Servicios Varios Camareros</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              
-              <div>
+              <section>
                 <h3 className="text-lg font-semibold mb-4">Tiempos de Comida Solicitados</h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
@@ -400,9 +437,9 @@ const StaffForm = () => {
                     <Label htmlFor="refaccionNocturna">Refacción nocturna</Label>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div>
+              <section>
                 <h3 className="text-lg font-semibold mb-4">Justificación</h3>
                 <div>
                   <Label htmlFor="justificacion">Justificación *</Label>
@@ -414,12 +451,12 @@ const StaffForm = () => {
                     rows={4}
                   />
                 </div>
-              </div>
+              </section>
 
-              <div>
+              <section>
                 <h3 className="text-lg font-semibold mb-4">Firmas</h3>
                 <p className="text-sm text-gray-600 mb-4">Atentamente,</p>
-                <div className="grid gap-6">
+                <div className="grid gap-6 max-w-sm">
                   <div>
                     <Label htmlFor="nombreColaborador">Responsable del Servicio Solicitante</Label>
                     <Input
@@ -431,7 +468,7 @@ const StaffForm = () => {
                     <p className="text-xs text-gray-500 mt-1">Firma y sello</p>
                   </div>
                 </div>
-              </div>
+              </section>
 
               <div className="flex gap-4 pt-6">
                 <Button type="submit" className="flex-1" disabled={isLoading}>

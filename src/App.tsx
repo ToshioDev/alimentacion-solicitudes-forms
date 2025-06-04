@@ -13,6 +13,8 @@ import PatientForm from "./pages/PatientForm";
 import StaffForm from "./pages/StaffForm";
 import DataManagement from "./pages/DataManagement";
 import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
+import PersonalManagement from "./pages/PersonalManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,13 +33,18 @@ const App: React.FC = () => {
                 <Route path="/" element={<Index />} />
                 {/* Ruta de administración privada */}
                 <Route path="/admin" element={
-                  <AuthGuard requireAuth={false}>
-                    <Auth />
+                  <AuthGuard requireAuth={true}>
+                    <Admin />
                   </AuthGuard>
                 } />
                 {/* Formularios públicos - sin autenticación requerida */}
                 <Route path="/formulario-paciente" element={<PatientForm />} />
                 <Route path="/formulario-personal" element={<StaffForm />} />
+                <Route path="/personal" element={
+                  <AuthGuard requireAuth={true}>
+                    <PersonalManagement />
+                  </AuthGuard>
+                } />
                 {/* Solo la gestión de datos requiere autenticación */}
                 <Route path="/gestion-datos" element={
                   <AuthGuard requireAuth={true}>

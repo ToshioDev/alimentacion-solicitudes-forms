@@ -13,15 +13,20 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { ArrowLeft, Search, Download, Users, FileText, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Download, Users, FileText, Trash2, Loader2, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { generatePatientPDF, generateStaffPDF } from "@/utils/pdfGenerator";
 import { usePatientOrders, PatientOrder } from "@/hooks/usePatientOrders";
 import { useStaffOrders, StaffOrder } from "@/hooks/useStaffOrders";
+import { useToast } from "@/components/ui/use-toast";
+import * as XLSX from "xlsx";
 
 const DataManagement = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [staffList, setStaffList] = useState<StaffOrder[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { 
     orders: patientOrders, 
@@ -35,13 +40,16 @@ const DataManagement = () => {
     deleteOrder: deleteStaffOrder 
   } = useStaffOrders();
 
+  // Merge imported staff with existing staff orders
+  const combinedStaffOrders = [...staffOrders, ...staffList];
+
   const filteredPatientOrders = patientOrders.filter(order =>
     order.nombre_completo_paciente.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.afiliacion_cui.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.servicio.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredStaffOrders = staffOrders.filter(order =>
+  const filteredStaffOrders = combinedStaffOrders.filter(order =>
     order.nombre_completo_personal.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.no_empleado.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.servicio.toLowerCase().includes(searchTerm.toLowerCase())
@@ -94,6 +102,53 @@ const DataManagement = () => {
       nombreSolicitante: order.nombre_solicitante,
       nombreColaborador: order.nombre_colaborador,
     });
+  };
+
+  // Handler for Excel file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = evt.target?.result;
+      if (!data) {
+        setIsImporting(false);
+        toast({ title: "Error", description: "No se pudo leer el archivo." });
+        return;
+      }
+      const workbook = XLSX.read(data, { type: "binary" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+      // Map jsonData to StaffOrder type respecting the columns:
+      // No., No. De Empleado, Nombre, Plaza Nominal, Renglon Presupuestario
+      const importedStaff = jsonData.map((row, index) => ({
+        id: `imported-${index}`,
+        fecha: new Date().toISOString(),
+        nombre_completo_personal: row["Nombre"] || "",
+        no_empleado: row["No. De Empleado"] ? String(row["No. De Empleado"]) : "",
+        cargo: row["Plaza Nominal"] || "",
+        servicio: row["Renglon Presupuestario"] ? String(row["Renglon Presupuestario"]) : "",
+        tipo_dieta: "",
+        desayuno: false,
+        almuerzo: false,
+        cena: false,
+        refaccion_nocturna: false,
+        justificacion: "",
+        nombre_solicitante: "",
+        nombre_colaborador: "",
+        nombre_aprobador: "",
+      }));
+
+      setStaffList(importedStaff);
+      setIsImporting(false);
+      toast({ title: "Éxito", description: "Archivo Excel importado correctamente." });
+    };
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -169,14 +224,14 @@ const DataManagement = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {staffLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : staffOrders.length}
+                {staffLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : combinedStaffOrders.length}
               </div>
               <p className="text-xs text-muted-foreground">Total registradas</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tables */}
+        {/* Tabs */}
         <Tabs defaultValue="patients" className="space-y-4">
           <TabsList>
             <TabsTrigger value="patients">Órdenes de Pacientes ({filteredPatientOrders.length})</TabsTrigger>
