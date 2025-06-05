@@ -282,6 +282,8 @@ export const generatePatientPDF = (data: PatientFormData) => {
 
 export const generateStaffPDF = (data: StaffFormData) => {
   const fechaStr = data.fecha ? format(data.fecha, "dd/MM/yyyy") : "___________";
+  // Ensure tipoDieta has a default value "Libre" if empty
+  const tipoDietaValue = data.tipoDieta && data.tipoDieta.trim() !== "" ? data.tipoDieta : "Libre";
 
   const content = `
     <div class="header">
@@ -320,7 +322,7 @@ export const generateStaffPDF = (data: StaffFormData) => {
       </div>
       <div class="field">
         <span class="field-label">Tipo de dieta:</span>
-        <span class="field-value">${data.tipoDieta || ''}</span>
+        <span class="field-value">${tipoDietaValue}</span>
       </div>
     </div>
 
