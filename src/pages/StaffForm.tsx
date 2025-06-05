@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { CalendarIcon, ArrowLeft, FileText } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { generateStaffPDF } from "@/utils/pdfGenerator";
 import FormRecordsSheet from "@/components/FormRecordsSheet";
 import { useStaffOrders } from "@/hooks/useStaffOrders";
-import { supabase } from "@/integrations/supabase/client";
 import { createClient } from '@supabase/supabase-js';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
+// --- Helpers LocalStorage ---
+const LOCAL_KEY_DRAFT = "staffFormDraft";
+const LOCAL_KEY_SUBMITTED = "staffFormSubmitted";
+const LOCAL_KEY_PENDING = "staffFormPendings";
+
+function saveDraftToLocalStorage(formData) {
+  localStorage.setItem(LOCAL_KEY_DRAFT, JSON.stringify(formData));
+}
+function getDraftFromLocalStorage() {
+  const data = localStorage.getItem(LOCAL_KEY_DRAFT);
+  return data ? JSON.parse(data) : null;
+}
+function clearDraftFromLocalStorage() {
+  localStorage.removeItem(LOCAL_KEY_DRAFT);
+}
+function saveSubmittedToLocalStorage(orderData) {
+  const current = getSubmittedFromLocalStorage();
+  localStorage.setItem(LOCAL_KEY_SUBMITTED, JSON.stringify([...current, orderData]));
+}
+function getSubmittedFromLocalStorage() {
+  const data = localStorage.getItem(LOCAL_KEY_SUBMITTED);
+  return data ? JSON.parse(data) : [];
+}
+
+// --- PENDINGS MULTIPLES ---
+function savePendingToLocalStorage(formData) {
+  let pendings = getPendingsFromLocalStorage();
+  // Unicidad: por ibm y fecha
+  const exists = pendings.some(
+    (p) =>
+      p.ibm === formData.ibm &&
+      format(new Date(p.fecha), "yyyy-MM-dd") === format(new Date(formData.fecha), "yyyy-MM-dd")
+  );
+  if (!exists) {
+    pendings.push(formData);
+    localStorage.setItem(LOCAL_KEY_PENDING, JSON.stringify(pendings));
+  }
+}
+function getPendingsFromLocalStorage() {
+  const data = localStorage.getItem(LOCAL_KEY_PENDING);
+  return data ? JSON.parse(data) : [];
+}
+function removePendingFromLocalStorage(formData) {
+  let pendings = getPendingsFromLocalStorage();
+  pendings = pendings.filter(
+    (p) =>
+      !(
+        p.ibm === formData.ibm &&
+        format(new Date(p.fecha), "yyyy-MM-dd") === format(new Date(formData.fecha), "yyyy-MM-dd")
+      )
+  );
+  localStorage.setItem(LOCAL_KEY_PENDING, JSON.stringify(pendings));
+}
+
+// --- Interfaces ---
 interface StaffFormData {
   fecha: Date | undefined;
   nombreCompletoPersonal: string;
@@ -51,30 +104,46 @@ const StaffForm = () => {
   const navigate = useNavigate();
   const { createOrder, orders, isLoading } = useStaffOrders();
 
-const [formData, setFormData] = useState<StaffFormData>({
-  fecha: new Date(),
-  nombreCompletoPersonal: "",
-  noEmpleado: "",
-  ibm: "",
-  servicio: "",
-  cargo: "",
-  tipoDieta: "",
-  desayuno: false,
-  almuerzo: false,
-  cena: false,
-  refaccionNocturna: false,
-  justificacion: "",
-  nombreSolicitante: "",
-  nombreColaborador: "",
-});
+  const [formData, setFormData] = useState<StaffFormData>({
+    fecha: new Date(),
+    nombreCompletoPersonal: "",
+    noEmpleado: "",
+    ibm: "",
+    servicio: "",
+    cargo: "",
+    tipoDieta: "",
+    desayuno: false,
+    almuerzo: false,
+    cena: false,
+    refaccionNocturna: false,
+    justificacion: "",
+    nombreSolicitante: "",
+    nombreColaborador: "",
+  });
 
   const [ibmResults, setIbmResults] = useState<PersonalInfo[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  // --- Cargar draft inicial
+  useEffect(() => {
+    const draft = getDraftFromLocalStorage();
+    if (draft) setFormData({ ...draft, fecha: draft.fecha ? new Date(draft.fecha) : undefined });
+  }, []);
+
+  // --- Guardar cada cambio como borrador (draft único)
+  useEffect(() => {
+    saveDraftToLocalStorage(formData);
+  }, [formData]);
+
+  // --- HANDLERS ---
   const handleGeneratePDF = () => {
     if (!formData.nombreCompletoPersonal) {
       toast({ title: "Error", description: "Complete al menos el nombre del personal para generar el PDF", variant: "destructive" });
       return;
+    }
+    // Guardar en pendientes
+    if (formData.fecha && formData.ibm) {
+      savePendingToLocalStorage(formData);
     }
     generateStaffPDF(formData);
   };
@@ -93,7 +162,7 @@ const [formData, setFormData] = useState<StaffFormData>({
       cena: record.cena || false,
       refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
       justificacion: record.justificacion || "",
-      nombreSolicitante: "", // Campo removido, se envía vacío
+      nombreSolicitante: "",
       nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
     });
     toast({ title: "Formulario cargado", description: "Se ha cargado el formulario para editar" });
@@ -113,7 +182,7 @@ const [formData, setFormData] = useState<StaffFormData>({
       cena: record.cena || false,
       refaccionNocturna: record.refaccion_nocturna || record.refaccionNocturna || false,
       justificacion: record.justificacion || "",
-      nombreSolicitante: "", // Campo removido, se envía vacío
+      nombreSolicitante: "",
       nombreColaborador: record.nombre_colaborador || record.nombreColaborador || "",
     };
     generateStaffPDF(pdfData);
@@ -123,60 +192,23 @@ const [formData, setFormData] = useState<StaffFormData>({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const fetchStaffByIBM = async (ibm: string) => {
-    if (!ibm) {
-      setIbmResults([]);
-      return;
-    }
-
-    // Cast to any to avoid type errors with custom RPC
-    const { data, error } = await (supabase.rpc as any)('get_personal_info_by_no_empleado', { p_no_empleado: ibm });
-
-    if (error) {
-      setIbmResults([]);
-      return;
-    }
-
-    if (data && data.length > 0) {
-      setIbmResults(data);
-      const personal = data[0];
-      setFormData(prev => ({
-        ...prev,
-        nombreCompletoPersonal: personal.nombre_completo || "",
-        noEmpleado: personal.no_empleado || "",
-        cargo: personal.plaza_nominal || "",
-      }));
-    } else {
-      setIbmResults([]);
-    }
-  };
-
   const fetchStaffByIBMSimilar = async (ibm: string) => {
-    console.log("fetchStaffByIBMSimilar called with:", ibm);
     if (!ibm) {
       setIbmResults([]);
       return;
     }
-    // Consulta directa a la tabla personal_info con filtro LIKE para IBM similares
     const { data, error } = await anonSupabase
       .from('personal_info' as any)
       .select('no_empleado, nombre_completo, plaza_nominal')
       .ilike('no_empleado', `%${ibm}%`)
       .limit(10);
-    console.log("fetchStaffByIBMSimilar result data:", data, "error:", error);
 
     if (error) {
-      console.error("Error al buscar IBM similares:", error);
       toast({ title: "Error", description: `Error al buscar IBM similares: ${error.message}`, variant: "destructive" });
       setIbmResults([]);
       return;
     }
-
-    if (Array.isArray(data) && data.length > 0) {
-      setIbmResults(data as unknown as PersonalInfo[]);
-    } else {
-      setIbmResults([]);
-    }
+    setIbmResults(Array.isArray(data) && data.length > 0 ? data as unknown as PersonalInfo[] : []);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -186,17 +218,14 @@ const [formData, setFormData] = useState<StaffFormData>({
       toast({ title: "Error", description: "La fecha es obligatoria", variant: "destructive" });
       return;
     }
-
     if (!formData.nombreCompletoPersonal) {
       toast({ title: "Error", description: "El nombre completo es obligatorio", variant: "destructive" });
       return;
     }
-
     if (!formData.justificacion) {
       toast({ title: "Error", description: "La justificación es obligatoria", variant: "destructive" });
       return;
     }
-
     const tiemposSeleccionados = [
       formData.desayuno,
       formData.almuerzo,
@@ -209,7 +238,6 @@ const [formData, setFormData] = useState<StaffFormData>({
       return;
     }
 
-    // Save to Supabase
     const orderData = {
       fecha: format(formData.fecha, "yyyy-MM-dd"),
       nombre_completo_personal: formData.nombreCompletoPersonal,
@@ -222,15 +250,17 @@ const [formData, setFormData] = useState<StaffFormData>({
       cena: formData.cena,
       refaccion_nocturna: formData.refaccionNocturna,
       justificacion: formData.justificacion,
-      nombre_solicitante: "", // Campo removido, se envía vacío
+      nombre_solicitante: "",
       nombre_colaborador: formData.nombreColaborador,
-      nombre_aprobador: "", // Remove this field as requested
+      nombre_aprobador: "",
     };
 
     const result = await createOrder(orderData);
 
     if (result) {
-      // Reset form on success
+      saveSubmittedToLocalStorage(orderData);
+      removePendingFromLocalStorage(formData);
+      clearDraftFromLocalStorage();
       setFormData({
         fecha: undefined,
         nombreCompletoPersonal: "",
@@ -249,6 +279,11 @@ const [formData, setFormData] = useState<StaffFormData>({
       });
     }
   };
+
+  // Puedes mostrar los pendientes en tu Sheet así:
+  // const [pendings, setPendings] = useState([]);
+  // useEffect(() => { setPendings(getPendingsFromLocalStorage()); }, []);
+  // <FormRecordsSheet pendingRecords={pendings} ... />
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-100">
@@ -279,6 +314,7 @@ const [formData, setFormData] = useState<StaffFormData>({
                 formType="staff" 
                 onEditRecord={handleEditRecord}
                 onGeneratePDF={handleGenerateRecordPDF}
+                // Puedes pasar aquí también los pendientes, enviados, etc.
               />
             </div>
           </div>
@@ -296,7 +332,6 @@ const [formData, setFormData] = useState<StaffFormData>({
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-8">
-              
               <section>
                 <h3 className="text-lg font-semibold mb-4">Información General</h3>
                 <div className="grid gap-2 max-w-sm">
@@ -341,10 +376,8 @@ const [formData, setFormData] = useState<StaffFormData>({
                           value={formData.ibm}
                           onChange={async (e) => {
                             const value = e.target.value;
-                            console.log("IBM input changed:", value);
                             handleInputChange('ibm', value);
                             if (value.length > 0) {
-                              console.log("Consultando Supabase con IBM:", value);
                               await fetchStaffByIBMSimilar(value);
                               setShowSuggestions(true);
                             } else {
@@ -352,16 +385,8 @@ const [formData, setFormData] = useState<StaffFormData>({
                               setShowSuggestions(false);
                             }
                           }}
-                          onBlur={() => {
-                            // Ocultar sugerencias al perder foco
-                            setTimeout(() => setShowSuggestions(false), 200);
-                          }}
-                          onFocus={() => {
-                            // Mostrar sugerencias al enfocar si hay resultados
-                            if (ibmResults.length > 0) {
-                              setShowSuggestions(true);
-                            }
-                          }}
+                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                          onFocus={() => { if (ibmResults.length > 0) setShowSuggestions(true); }}
                           placeholder="Identificador IBM"
                           autoComplete="off"
                         />
@@ -432,9 +457,9 @@ const [formData, setFormData] = useState<StaffFormData>({
                     </div>
                     <div>
                       <Label htmlFor="tipoDieta">Tipo de Dieta</Label>
-                      <Select value={formData.tipoDieta} onValueChange={(value) => handleInputChange('tipoDieta', value)}>
+                      <Select value="Libre" onValueChange={() => {}} disabled>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar tipo de dieta" />
+                          <SelectValue>Libre</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Normal">Normal</SelectItem>
@@ -500,23 +525,6 @@ const [formData, setFormData] = useState<StaffFormData>({
                     placeholder="Ingrese la justificación para la solicitud de alimentación"
                     rows={4}
                   />
-                </div>
-              </section>
-
-              <section>
-                <h3 className="text-lg font-semibold mb-4">Firmas</h3>
-                <p className="text-sm text-gray-600 mb-4">Atentamente,</p>
-                <div className="grid gap-6 max-w-sm">
-                  <div>
-                    <Label htmlFor="nombreColaborador">Responsable del Servicio Solicitante</Label>
-                    <Input
-                      id="nombreColaborador"
-                      value={formData.nombreColaborador}
-                      onChange={(e) => handleInputChange('nombreColaborador', e.target.value)}
-                      placeholder="Personal responsable del servicio solicitante"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Firma y sello</p>
-                  </div>
                 </div>
               </section>
 
